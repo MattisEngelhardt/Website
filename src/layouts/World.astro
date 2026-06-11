@@ -10,6 +10,7 @@ import '@fontsource-variable/fraunces/full-italic.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import PathNav from '../components/PathNav.astro';
 
 export interface Props {
@@ -40,7 +41,8 @@ const personSchema = {
 ---
 
 <!doctype html>
-<html lang="en" data-world={world}>
+<!-- die Passage drives all transition theatre — the router's own crossfade stays out of the way -->
+<html lang="en" data-world={world} transition:animate="none">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -68,6 +70,8 @@ const personSchema = {
         />
       )
     }
+
+    <ClientRouter fallback="swap" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -75,5 +79,28 @@ const personSchema = {
       <slot />
     </main>
     <PathNav current={world} />
+
+    <!-- die Passage: the painted veil between worlds. Persisted so a
+         mid-sweep stroke survives the document swap underneath it. -->
+    <div
+      class="passage"
+      id="passage"
+      data-state="idle"
+      aria-hidden="true"
+      transition:persist="passage"
+    >
+      <div class="passage-stroke s1"></div>
+      <div class="passage-stroke s2"></div>
+      <div class="passage-stroke s3"></div>
+      <div class="passage-plate">
+        <span class="passage-act mono-label"></span>
+        <span class="passage-name"></span>
+      </div>
+    </div>
+
+    <script>
+      import { initPassage } from '../lib/passage';
+      initPassage();
+    </script>
   </body>
 </html>

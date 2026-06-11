@@ -21,9 +21,14 @@
   - Tag-Kontrast-Fix: `[data-daypart='day']` → Frontispiz in Tinte (--c-deep)
   - `?hour` steuert jetzt AUCH das CSS-Fallback-daypart (inline Script liest Query)
 - ✅ Katalog-Modus verifiziert (reduced-motion → `catalog`, keine Szene, kein Runway, voller Text)
-- ✅ `npm run check` 0 Fehler; Build grün; Einstiegs-JS ~5 KB, summit-Chunk 789 KB raw lazy (~200 KB gzip)
+- ✅ `npm run check` 0 Fehler; Build grün; Einstiegs-JS ~18 KB raw (World-Script 4,5 + ClientRouter 13,3), summit-Chunk 789 KB raw lazy (~200 KB gzip), journey-Chunk (gsap+lenis, 129 KB) lazy
 - ✅ **Erster Commit existiert jetzt wirklich** (`39c7d28` Tag 1 + Folge-Commit Tag 2) — Achtung: brain.md hatte fälschlich „Commit liegt vor" behauptet
-- ⏳ Noch offen aus Tag 2–3: View-Transitions/Welt-Übergangs-Framework zwischen Routen (ClientRouter — bewusst auf Session-Start verschoben, ändert Script-Lifecycle), Sound-Layer
+- ✅ **„Die Passage" — Welt-Übergangs-Framework (Rest Tag 2–3) gebaut UND runtime-verifiziert** (verify-passage.mjs `PASS`, verify-hero.mjs danach erneut `PASS`, 0 Errors):
+  - ClientRouter (`fallback="swap"`) in World.astro, Default-Crossfade via `transition:animate="none"` auf `<html>` aus — der Veil IST die Transition
+  - `src/lib/passage.ts` = EIN Layout-Script (läuft 1×/Session): Quality-Gate, Daypart, World-Controller-Registry (mount/cleanup), Veil-Choreografie. Per-Page-Scripts sind abgeschafft!
+  - Welt-Controller in `src/worlds/` (summit.ts = Szene+Descent+Reveals mit gsap.context-Revert; common.ts = Default-Reveals für Text-Welten)
+  - Veil: 3 gestaffelte Pinselstrich-Bahnen (CSS-only, kein gsap im Initial-Bundle) in Ziel-Welt-Palette + Kapitel-Tafel („Act I — The Sea"), Element überlebt Swap via `transition:persist`; Richtung folgt Akt-Index (vor/zurück). Swap passiert erst bei voller Deckung (Loader-Extend in `astro:before-preparation`) → verdeckt WebGPU-Init beim Remount
+- ⏳ Noch offen aus Tag 2–3: Sound-Layer (kann auch in Tag-11-Polish)
 - ⏳ GitHub-Repo + Deploy (braucht `gh auth login` von Mattis); **FPS-Check auf echtem Gerät** (Kuwahara = ~100 Taps/Pixel; Headless kann keine ehrliche FPS messen — Mattis soll einmal scrollen/wedeln und auf Ruckeln achten)
 - Deadline: **22.06.2026** (Roadmap in PLAN.md; Tag 4 = Akt I Meer)
 
@@ -45,8 +50,12 @@
 - `src/components/PathNav.astro` — „Der Pfad", persistente Pilger-Nav, 5 Stationen
 - `src/lib/quality.ts` — Erlebnis-Gate; `src/lib/journey.ts` — Lenis+GSAP-Singleton (`anchors: true`)
 - `src/scenes/summit.ts` — Akt 0 komplett: 7+1 Fog-Layer (fbm, TSL; Layer 8 = Wisp VOR der Figur), Tageszeit-Paletten (CPU-lerp → Uniforms), Maus = Wind + Kamera-Parallax, **Wanderer-Figur** (`drawWanderer()`, prozedurale Canvas-Alphamaske, tintbar via uFigure), **Kuwahara-RenderPipeline + Realitäts-Linse** (uReality/uPointerUv), **`setDescent(t)`** im Handle für den White-out. Dev-Tools: **`?hour=19.5`** (Tageszeit), **`?lens`** (Linsen-Maske)
-- `src/pages/index.astro` — descent-track (280svh, nur `[data-mode='full']`), sticky Hero, `.fog-veil`, Paper-Sektion `#descent`, ScrollTrigger-Timeline + Reveals
-- Seiten setzen `data-daypart` inline (CSS-Fallback-Himmel, respektiert `?hour`)
+- `src/lib/passage.ts` — **Die Passage**: ClientRouter-Lifecycle, Veil-Choreografie (closeVeil/openVeil über `transitionend`), World-Registry (`CONTROLLERS`-Map → dynamic imports), restauriert `data-mode`/`data-daypart` in `astro:after-swap` (Router wischt ALLE `<html>`-Attribute!), Lenis stop/sync/start um Swaps herum
+- `src/lib/daypart.ts` — Daypart-Logik (synchron halten mit Inline-Script in index.astro!)
+- `src/worlds/summit.ts` + `src/worlds/common.ts` — Welt-Controller: `mount(ctx) → cleanup`; neue Welten hier registrieren (passage.ts `CONTROLLERS`)
+- `src/pages/index.astro` — descent-track (280svh, nur `[data-mode='full']`), sticky Hero, `.fog-veil`, Paper-Sektion `#descent`; KEIN eigenes Script mehr (Logik im Controller)
+- Veil-Styles + Welt-Paletten am Ende von `src/styles/global.css` (`.passage…`)
+- index setzt `data-daypart` inline (First-Paint-Fallback, respektiert `?hour`)
 
 ## Umgebungs-Gotchas (Windows, wichtig!)
 
@@ -54,11 +63,14 @@
 - `gh` CLI ist NICHT eingeloggt → GitHub-Push braucht Mattis (`gh auth login`)
 - Pfad enthält Leerzeichen + OneDrive — Befehle immer quoten; OneDrive kann I/O verlangsamen
 - PowerShell 5.1: kein `&&` — `;` oder `if ($?)` nutzen
+- **NIE Datei-Edits per PowerShell `-replace`** — Get-Content/Set-Content verhunzt UTF-8 (Mojibake bei —, →, ──). Immer Edit/Write-Tool nutzen (Fehler vom 11.06., verify-passage.mjs musste neu geschrieben werden)
 
 ## Runtime-Verifikation (etabliert 11.06., immer nutzen!)
 
 - **`node scripts/verify-hero.mjs`** (Dev-Server muss laufen): fährt System-Chrome headless (echtes WebGPU!), prüft Paletten/`?hour`, Linsen-Maske (`?lens`), Descent-Scroll, Katalog-Gate; Screenshots nach `verify-out/` (gitignored) → mit Read-Tool ansehen
+- **`node scripts/verify-passage.mjs`**: echte Navigationen (summit↔sea ×3, History back/forward, Anker-Link, Katalog-Modus) — prüft Szenen-REMOUNT, Attribut-Restore, Veil-Zyklus, 0 Errors
 - Playwright als devDep installiert mit `$env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1"` (nutzt `channel: 'chrome'`, kein Browser-Download)
+- Playwright-Gotcha: Veil im Idle ist `visibility:hidden` → `waitForSelector(…, { state: 'attached' })`, sonst Timeout
 - Astro **devToolbar deaktiviert** (504 „Outdated Optimize Dep"-Rauschen in Dev; wir nutzen sie nicht)
 - Headless misst keine ehrliche FPS — Perf-Eindruck braucht echtes Gerät
 
@@ -107,7 +119,7 @@
 ## Offene technische Punkte / Risiken
 
 - Fraunces: `full.css` + `full-italic.css` importieren (NICHT bare import — Standard-css hat nur wght-Achse, wir brauchen opsz/SOFT/WONK; bare import gibt zudem ts(2882))
-- View Transitions (ClientRouter) bewusst NOCH nicht drin — am Anfang einer frischen Session einführen (ändert Script-Lifecycle aller Seiten: `astro:page-load` statt einfacher Module-Ausführung) + danach komplette Re-Verifikation
+- ClientRouter-Regeln (seit 11.06. aktiv): Per-Page-Scripts VERBOTEN — alles über Welt-Controller in `src/worlds/` + Registrierung in passage.ts. `<html>`-Attribute, die der Client setzt, müssen in `astro:after-swap` restauriert werden. `?hour`-Override geht bei SPA-Nav verloren (Links tragen keine Query) — Dev-only, bewusst
 - FPS auf echtem Mittelklasse-Gerät ungemessen (Kuwahara-Kosten); Fallback-Idee falls nötig: Radius 3 oder Post nur auf `full` mit gutem GPU-Tier
 - Wanderer ist prozedural — falls Mattis eine echte Silhouette (Foto) will, ist `drawWanderer()` einfach austauschbar (gleiche Alphamasken-Schnittstelle)
 - `?hour=19.5`: WebGL-Szene mischt golden→dusk kontinuierlich, CSS-Fallback springt diskret bei 19h auf dusk — bewusste Vereinfachung, fällt nur ohne WebGL auf

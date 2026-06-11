@@ -141,3 +141,135 @@ a:hover {
 .skip-link:focus {
   top: var(--gutter);
 }
+
+/* ── Die Passage — the painted veil between worlds ──────────────────
+   Three brush strokes in the destination's palette sweep across the
+   frame; the swap happens behind full cover while a chapter plate
+   names the next act. Pure CSS motion — passage.ts only flips
+   data-state/-to/-dir and listens for transitionend.                */
+
+.passage {
+  position: fixed;
+  inset: 0;
+  z-index: 800; /* above the path nav, under the canvas grain */
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.passage:not([data-state='idle']) {
+  visibility: visible;
+}
+
+/* strokes oversize the frame so the constant skew never shows an edge */
+.passage-stroke {
+  position: absolute;
+  inset: -14% -20%;
+  transform: translateX(-115%) skewX(-7deg);
+}
+
+/* walking back along the path: paint sweeps in from the other side */
+.passage[data-dir='back'] .passage-stroke {
+  transform: translateX(115%) skewX(-7deg);
+}
+
+.passage[data-state='closing'] .passage-stroke,
+.passage[data-state='covered'] .passage-stroke {
+  transform: translateX(0) skewX(-7deg);
+  transition: transform 520ms var(--ease-journey);
+}
+
+.passage[data-state='closing'] .s2,
+.passage[data-state='covered'] .s2 {
+  transition-delay: 80ms;
+}
+
+.passage[data-state='closing'] .s3,
+.passage[data-state='covered'] .s3 {
+  transition-delay: 160ms;
+}
+
+.passage[data-state='opening'] .passage-stroke {
+  transform: translateX(115%) skewX(-7deg);
+  transition: transform 660ms var(--ease-arrive);
+}
+
+.passage[data-dir='back'][data-state='opening'] .passage-stroke {
+  transform: translateX(-115%) skewX(-7deg);
+}
+
+/* the top sheet leaves first, unveiling layer by layer */
+.passage[data-state='opening'] .s3 { transition-delay: 0ms; }
+.passage[data-state='opening'] .s2 { transition-delay: 90ms; }
+.passage[data-state='opening'] .s1 { transition-delay: 180ms; }
+
+/* ── chapter plate ── */
+.passage-plate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+  opacity: 0;
+  translate: 0 14px;
+}
+
+.passage[data-state='closing'] .passage-plate,
+.passage[data-state='covered'] .passage-plate {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 320ms var(--ease-arrive) 300ms,
+    translate 460ms var(--ease-arrive) 300ms;
+}
+
+.passage[data-state='opening'] .passage-plate {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-lift);
+}
+
+.passage-name {
+  font-size: clamp(2.25rem, 1rem + 4.5vw, 4.5rem);
+  line-height: var(--leading-tight);
+  font-style: italic;
+  font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 1;
+}
+
+/* ── destination palettes (only mixed from the quintet) ── */
+.passage[data-to='summit'] .s1 { background: var(--c-deep); }
+.passage[data-to='summit'] .s2 { background: var(--c-babyblue); }
+.passage[data-to='summit'] .s3 {
+  background: linear-gradient(125deg, var(--c-canvas) 40%, color-mix(in oklab, var(--c-babyblue) 45%, var(--c-canvas)));
+}
+.passage[data-to='summit'] .passage-plate { color: var(--c-deep); }
+
+.passage[data-to='sea'] .s1 { background: var(--c-vermilion); }
+.passage[data-to='sea'] .s2 { background: var(--c-orange); }
+.passage[data-to='sea'] .s3 {
+  background: linear-gradient(125deg, var(--c-sun) 35%, var(--c-orange));
+}
+.passage[data-to='sea'] .passage-plate { color: var(--c-ink); }
+
+.passage[data-to='city'] .s1 { background: color-mix(in oklab, var(--c-neon-cyan) 40%, var(--c-ink)); }
+.passage[data-to='city'] .s2 { background: color-mix(in oklab, var(--c-neon-magenta) 32%, var(--c-ink)); }
+.passage[data-to='city'] .s3 {
+  background: linear-gradient(125deg, var(--c-ink) 45%, color-mix(in oklab, var(--c-neon-cyan) 14%, var(--c-ink)));
+}
+.passage[data-to='city'] .passage-plate { color: var(--c-neon-cyan); }
+
+.passage[data-to='camino'] .s1 { background: color-mix(in oklab, var(--c-orange) 45%, var(--c-haze)); }
+.passage[data-to='camino'] .s2 { background: var(--c-haze); }
+.passage[data-to='camino'] .s3 {
+  background: linear-gradient(125deg, var(--c-canvas) 45%, var(--c-haze));
+}
+.passage[data-to='camino'] .passage-plate { color: var(--c-ink); }
+.passage[data-to='camino'] .passage-act { color: var(--c-vermilion); }
+
+.passage[data-to='horizon'] .s1 { background: var(--c-babyblue); }
+.passage[data-to='horizon'] .s2 { background: color-mix(in oklab, var(--c-sun) 55%, var(--c-canvas)); }
+.passage[data-to='horizon'] .s3 {
+  background: linear-gradient(125deg, var(--c-canvas) 30%, var(--c-sun));
+}
+.passage[data-to='horizon'] .passage-plate { color: var(--c-ink); }
