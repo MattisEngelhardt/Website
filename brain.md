@@ -9,14 +9,23 @@
 2. **Während der Session:** neue Findings sofort hier eintragen
 3. **Session-Ende (großer Sessions):** `HANDOFF.md` aktualisieren — perfekter Handoff-Prompt an den nächsten Fable, beginnt mit `@PLAN.md @brain.md`; knapp, verweist auf brain.md statt zu duplizieren
 
-## Status (Stand: 10.06.2026 Abend, Tag 1 von 12)
+## Status (Stand: 11.06.2026 Nachmittag, Tag 2 von 12)
 
-- ✅ Tag 1 komplett: Recherche, Repo (git, branch `main`), Astro-6-Skeleton, Art-Direction-Lock, 5 Welt-Routen mit SEO-Text, Akt-0-Hero erster Pass (Nebelmeer + Tageszeit-Himmel + Maus-Wind), README, brain.md
-- ✅ `npm run check` 0 Fehler, `npm run build` grün (5 Routen + Sitemap)
-- ✅ Perf-Budget eingehalten: Einstiegsroute ~4 KB initiales JS; journey-Chunk (GSAP+Lenis) 129 KB lazy; summit-Chunk 783 KB raw (~200 KB gzip, three/webgpu) streamt nach First Paint → Optimierungskandidat, beobachten
-- ⏳ Hero noch NICHT im Browser verifiziert (TSL-Runtime!) → erster Schritt nächste Session: `npm run dev` + visuell prüfen
-- ⏳ Dann: GitHub-Repo (braucht `gh auth login` von Mattis) → Deploy-Pipeline → Tag 2–3: Akt 0 Meisterstück (Kuwahara-Morph, Wanderer-Figur, White-out-Descent, Scroll-Journey)
-- Deadline: **22.06.2026** (12 Tage, Roadmap in PLAN.md)
+- ✅ Tag 1 komplett (Skeleton, Art-Direction, 5 Routen, Hero erster Pass)
+- ✅ **Akt-0-Meisterstück (Tag 2–3-Kern) gebaut UND im Browser verifiziert** (Playwright + System-Chrome, echtes WebGPU, 0 Console-Errors, `VERDICT: PASS`):
+  - **Kuwahara-Painterly-Post** (TSL RenderPipeline, Radius 4): die ganze Welt ist ein Gemälde; Paper-Grain + Vignette nur auf der Malerei-Seite
+  - **Realitäts-Linse**: Mausbewegung öffnet scharfes Fenster um den Cursor (uReality × radiale Maske), Stillstand lässt die Malerei zurückkehren. Debug: **`?lens`** zeigt die Maske
+  - **Wanderer-Rückenfigur**: prozedural in Code gemalt (Canvas-Alphamaske, kein Asset!), Fels läuft aus dem Frame, Figur im goldenen Schnitt rechts, blickt zur Sonne; atmet mit dem Wind
+  - **White-out-Descent**: 280svh-Runway, sticky Hero, ScrollTrigger scrubbt `setDescent(t)` (Nebel verdichtet + steigt, Kamera sinkt) + Veil → löst nahtlos in **Paper-Sektion** auf (Canvas-Papier, Tinten-Text — „das Gemälde wird zur Buchseite")
+  - Scroll-Reveals der Erzähl-Beats, Lenis `anchors: true` für den Descend-Link
+  - Tag-Kontrast-Fix: `[data-daypart='day']` → Frontispiz in Tinte (--c-deep)
+  - `?hour` steuert jetzt AUCH das CSS-Fallback-daypart (inline Script liest Query)
+- ✅ Katalog-Modus verifiziert (reduced-motion → `catalog`, keine Szene, kein Runway, voller Text)
+- ✅ `npm run check` 0 Fehler; Build grün; Einstiegs-JS ~5 KB, summit-Chunk 789 KB raw lazy (~200 KB gzip)
+- ✅ **Erster Commit existiert jetzt wirklich** (`39c7d28` Tag 1 + Folge-Commit Tag 2) — Achtung: brain.md hatte fälschlich „Commit liegt vor" behauptet
+- ⏳ Noch offen aus Tag 2–3: View-Transitions/Welt-Übergangs-Framework zwischen Routen (ClientRouter — bewusst auf Session-Start verschoben, ändert Script-Lifecycle), Sound-Layer
+- ⏳ GitHub-Repo + Deploy (braucht `gh auth login` von Mattis); **FPS-Check auf echtem Gerät** (Kuwahara = ~100 Taps/Pixel; Headless kann keine ehrliche FPS messen — Mattis soll einmal scrollen/wedeln und auf Ruckeln achten)
+- Deadline: **22.06.2026** (Roadmap in PLAN.md; Tag 4 = Akt I Meer)
 
 ## Tech-Entscheidungen (locked)
 
@@ -34,9 +43,10 @@
 - `src/styles/tokens.css` — **Art-Direction-Lock** (Quintett-Palette, Neon-Shift, Motion-DNA: ease-journey/arrive/lift, t-flick/step/breath/setpiece). Keine neuen Hues erfinden, nur mischen!
 - `src/layouts/World.astro` — SEO-Frame (OG, Canonical, JSON-LD Person auf `/`), Props: title/description/world/withPerson
 - `src/components/PathNav.astro` — „Der Pfad", persistente Pilger-Nav, 5 Stationen
-- `src/lib/quality.ts` — Erlebnis-Gate; `src/lib/journey.ts` — Lenis+GSAP-Singleton
-- `src/scenes/summit.ts` — Akt 0: 7 Fog-Layer (fbm via mx_noise_float, TSL), Tageszeit-Paletten-Keyframes (CPU-lerp → Uniforms), Maus = Wind (akkumulierender Drift) + Kamera-Parallax. Dev-Tool: **`?hour=19.5`** überschreibt Tageszeit!
-- Seiten setzen `data-daypart` inline (CSS-Fallback-Himmel passt zur Uhrzeit, auch ohne WebGL)
+- `src/lib/quality.ts` — Erlebnis-Gate; `src/lib/journey.ts` — Lenis+GSAP-Singleton (`anchors: true`)
+- `src/scenes/summit.ts` — Akt 0 komplett: 7+1 Fog-Layer (fbm, TSL; Layer 8 = Wisp VOR der Figur), Tageszeit-Paletten (CPU-lerp → Uniforms), Maus = Wind + Kamera-Parallax, **Wanderer-Figur** (`drawWanderer()`, prozedurale Canvas-Alphamaske, tintbar via uFigure), **Kuwahara-RenderPipeline + Realitäts-Linse** (uReality/uPointerUv), **`setDescent(t)`** im Handle für den White-out. Dev-Tools: **`?hour=19.5`** (Tageszeit), **`?lens`** (Linsen-Maske)
+- `src/pages/index.astro` — descent-track (280svh, nur `[data-mode='full']`), sticky Hero, `.fog-veil`, Paper-Sektion `#descent`, ScrollTrigger-Timeline + Reveals
+- Seiten setzen `data-daypart` inline (CSS-Fallback-Himmel, respektiert `?hour`)
 
 ## Umgebungs-Gotchas (Windows, wichtig!)
 
@@ -44,6 +54,21 @@
 - `gh` CLI ist NICHT eingeloggt → GitHub-Push braucht Mattis (`gh auth login`)
 - Pfad enthält Leerzeichen + OneDrive — Befehle immer quoten; OneDrive kann I/O verlangsamen
 - PowerShell 5.1: kein `&&` — `;` oder `if ($?)` nutzen
+
+## Runtime-Verifikation (etabliert 11.06., immer nutzen!)
+
+- **`node scripts/verify-hero.mjs`** (Dev-Server muss laufen): fährt System-Chrome headless (echtes WebGPU!), prüft Paletten/`?hour`, Linsen-Maske (`?lens`), Descent-Scroll, Katalog-Gate; Screenshots nach `verify-out/` (gitignored) → mit Read-Tool ansehen
+- Playwright als devDep installiert mit `$env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1"` (nutzt `channel: 'chrome'`, kein Browser-Download)
+- Astro **devToolbar deaktiviert** (504 „Outdated Optimize Dep"-Rauschen in Dev; wir nutzen sie nicht)
+- Headless misst keine ehrliche FPS — Perf-Eindruck braucht echtes Gerät
+
+## three 0.184 / TSL-Findings (Runtime-bestätigt)
+
+- `THREE.PostProcessing` ist **deprecated seit r183** → `THREE.RenderPipeline` (identische API: `outputNode`, `render()`, `dispose()`)
+- TSL `Loop`: `{ start, end, condition: '<=', type: 'float' }` nutzen — Float-Loop-Var ist direkt in `vec2()` verwendbar, Int-Var kollidiert mit den TS-Typen von `float()`
+- **`screenUV` hat Ursprung OBEN-links** (WebGPU-Konvention) → Pointer-UV NICHT y-flippen (klassischer GL-Reflex wäre falsch — war ein echter Bug, via `?lens`-Screenshot gefunden)
+- `pass(scene, camera).getTextureNode().sample(uvNode)` funktioniert für Offset-Sampling im Kuwahara
+- Kuwahara Radius 4 = ~100 Taps/Pixel → pixelRatio auf 1.5 gedeckelt
 
 ## Inspirations-Referenzen (von Mattis, 11.06. — orientieren, NIE kopieren)
 
@@ -81,8 +106,8 @@
 
 ## Offene technische Punkte / Risiken
 
-- TSL-API: `mx_noise_float`, `time`, Node-Uniforms — Build + Typecheck grün gegen three 0.184, aber **Runtime im Browser noch ungetestet** (TSL-Fehler zeigen sich erst dort)
 - Fraunces: `full.css` + `full-italic.css` importieren (NICHT bare import — Standard-css hat nur wght-Achse, wir brauchen opsz/SOFT/WONK; bare import gibt zudem ts(2882))
-- Kuwahara-Painterly↔Real-Morph (Signature-Moment) noch nicht gebaut → Tag 2–3
-- View Transitions (ClientRouter) bewusst NOCH nicht drin — kommt mit dem Übergangs-Framework Tag 2–3
-- Wanderer-Rückenfigur fehlt im Hero (wartet auf Asset-Entscheidung)
+- View Transitions (ClientRouter) bewusst NOCH nicht drin — am Anfang einer frischen Session einführen (ändert Script-Lifecycle aller Seiten: `astro:page-load` statt einfacher Module-Ausführung) + danach komplette Re-Verifikation
+- FPS auf echtem Mittelklasse-Gerät ungemessen (Kuwahara-Kosten); Fallback-Idee falls nötig: Radius 3 oder Post nur auf `full` mit gutem GPU-Tier
+- Wanderer ist prozedural — falls Mattis eine echte Silhouette (Foto) will, ist `drawWanderer()` einfach austauschbar (gleiche Alphamasken-Schnittstelle)
+- `?hour=19.5`: WebGL-Szene mischt golden→dusk kontinuierlich, CSS-Fallback springt diskret bei 19h auf dusk — bewusste Vereinfachung, fällt nur ohne WebGL auf

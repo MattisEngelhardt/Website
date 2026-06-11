@@ -20,6 +20,8 @@ export function initJourney(): Lenis {
     // a walker's pace: unhurried, weighty, never floaty
     duration: 1.15,
     easing: (t) => 1 - Math.pow(1 - t, 4),
+    // in-page anchors (the "descend" link) ride the same momentum
+    anchors: true,
   });
 
   lenis.on('scroll', ScrollTrigger.update);

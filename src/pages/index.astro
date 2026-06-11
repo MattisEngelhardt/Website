@@ -14,42 +14,50 @@ const description =
   <!-- paint the sky to the visitor's clock before any JS framework wakes up -->
   <script is:inline>
     (() => {
-      const h = new Date().getHours();
+      // ?hour=19.5 is the dev override for the whole daypart system
+      const q = parseFloat(new URLSearchParams(location.search).get('hour') ?? '');
+      const h = Number.isFinite(q) ? ((q % 24) + 24) % 24 : new Date().getHours();
       document.documentElement.dataset.daypart =
         h < 5 ? 'night' : h < 9 ? 'dawn' : h < 17 ? 'day' : h < 19 ? 'golden' : h < 22 ? 'dusk' : 'night';
     })();
   </script>
 
-  <header class="hero" data-scene>
-    <canvas id="summit-canvas" aria-hidden="true"></canvas>
-    <div class="frontispiece">
-      <p class="mono-label">Act 0 — The Summit</p>
-      <h1>Mattis Engelhardt</h1>
-      <p class="tagline lede">
-        Building agents until all that&rsquo;s left to do is what I love.
-      </p>
-    </div>
-    <a class="descend mono-label" href="#descent">
-      <span>Descend into the fog</span>
-      <span class="descend-line" aria-hidden="true"></span>
-    </a>
-  </header>
+  <div class="descent-track" id="descent-track">
+    <header class="hero" data-scene>
+      <canvas id="summit-canvas" aria-hidden="true"></canvas>
+      <div class="frontispiece">
+        <p class="mono-label">Act 0 — The Summit</p>
+        <h1>Mattis Engelhardt</h1>
+        <p class="tagline lede">
+          Building agents until all that&rsquo;s left to do is what I love.
+        </p>
+      </div>
+      <a class="descend mono-label" href="#descent">
+        <span>Descend into the fog</span>
+        <span class="descend-line" aria-hidden="true"></span>
+      </a>
+      <!-- the white-out: scroll sinks the page into the sea of fog -->
+      <div class="fog-veil" aria-hidden="true"></div>
+    </header>
+  </div>
 
-  <section id="descent" class="act" aria-label="About this place">
-    <p class="mono-label">A wanderer between worlds</p>
-    <h2>This is not a portfolio. It is a journey.</h2>
-    <p>
-      Mattis Engelhardt is a business student at Nürtingen-Geislingen
-      University and a builder of AI agents. He walked the Camino de
-      Santiago with his mother; now he walks the stranger path between
-      painting and code, lecture hall and startup, pilgrim road and
-      neon city.
-    </p>
-    <p>
-      This site is that walk, told in five worlds. Each one is painted
-      in a different style he loves — and each one is true.
-    </p>
-    <!-- TODO(content interview): bio facts, stations, what may be public -->
+  <section id="descent" class="paper" aria-label="About this place">
+    <div class="act">
+      <p class="mono-label">A wanderer between worlds</p>
+      <h2>This is not a portfolio. It is a journey.</h2>
+      <p>
+        Mattis Engelhardt is a business student at Nürtingen-Geislingen
+        University and a builder of AI agents. He walked the Camino de
+        Santiago with his mother; now he walks the stranger path between
+        painting and code, lecture hall and startup, pilgrim road and
+        neon city.
+      </p>
+      <p>
+        This site is that walk, told in five worlds. Each one is painted
+        in a different style he loves — and each one is true.
+      </p>
+      <!-- TODO(content interview): bio facts, stations, what may be public -->
+    </div>
   </section>
 
   <nav class="act worlds" aria-label="The five worlds">
@@ -93,21 +101,67 @@ const description =
     applyModeClass(mode);
 
     if (mode === 'full') {
-      const { initJourney } = await import('../lib/journey');
+      const { initJourney, gsap } = await import('../lib/journey');
       initJourney();
 
+      let setDescent: (t: number) => void = () => {};
       const canvas = document.getElementById('summit-canvas');
       if (canvas instanceof HTMLCanvasElement) {
         const { mountSummit } = await import('../scenes/summit');
-        await mountSummit(canvas);
+        const handle = await mountSummit(canvas);
+        if (handle) setDescent = (t) => handle.setDescent(t);
+      }
+
+      /* the descent: one long scroll sinks the summit into the white-out.
+         The veil ends on canvas-paper, exactly the colour of #descent —
+         the journey resolves onto the page of a book. */
+      const track = document.getElementById('descent-track');
+      if (track) {
+        const progress = { t: 0 };
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: track,
+              start: 'top top',
+              end: 'bottom bottom',
+              scrub: 0.7,
+            },
+          })
+          .to(progress, {
+            t: 1,
+            ease: 'none',
+            duration: 1,
+            onUpdate: () => setDescent(progress.t),
+          }, 0)
+          .to('.frontispiece', { yPercent: -46, autoAlpha: 0, ease: 'power1.in', duration: 0.55 }, 0)
+          .to('.descend', { autoAlpha: 0, duration: 0.2 }, 0)
+          .to('.fog-veil', { opacity: 1, ease: 'power1.inOut', duration: 0.62 }, 0.38);
+      }
+
+      /* narrative beats settle into place as the walk reaches them */
+      for (const el of document.querySelectorAll('#descent .act > *, .worlds > *')) {
+        gsap.from(el, {
+          y: 28,
+          autoAlpha: 0,
+          duration: 0.9,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 88%' },
+        });
       }
     }
   </script>
 </World>
 
 <style>
+  /* the scroll runway for the descent — only the full experience
+     gets the long sink; the catalogue reads straight through */
+  :global([data-mode='full']) .descent-track {
+    height: 280svh;
+  }
+
   .hero {
-    position: relative;
+    position: sticky;
+    top: 0;
     min-height: 100svh;
     display: grid;
     place-items: center;
@@ -146,6 +200,39 @@ const description =
 
   .hero.is-live #summit-canvas {
     opacity: 1;
+  }
+
+  /* day skies are pale — the frontispiece switches to ink, like a
+     printed plate caption (the scene behind stays painterly bright) */
+  :global([data-daypart='day']) .hero {
+    color: var(--c-deep);
+  }
+  :global([data-daypart='day']) .frontispiece h1 {
+    text-shadow: 0 2px 44px rgb(246 239 227 / 0.5);
+  }
+
+  /* the white-out veil — ends exactly on the paper of #descent */
+  .fog-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background:
+      radial-gradient(120% 90% at 50% 110%, var(--c-canvas) 55%, color-mix(in oklab, var(--c-canvas) 92%, var(--c-babyblue)) 100%);
+  }
+
+  /* ── the paper interlude — the painting resolves into the book ── */
+  .paper {
+    position: relative;
+    background: var(--c-canvas);
+    color: var(--c-ink);
+    color-scheme: light;
+  }
+
+  .paper :global(.mono-label) {
+    color: var(--c-vermilion);
+    opacity: 0.85;
   }
 
   .frontispiece {

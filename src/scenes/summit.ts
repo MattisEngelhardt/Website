@@ -5,25 +5,42 @@
  * visitor's local time. The mouse is wind: it steers the drift of the
  * fog and leans the camera like a head turning into the breeze.
  *
+ * The whole frame passes through a Kuwahara filter — the world IS a
+ * painting. Moving the mouse opens a lens of sharp reality around the
+ * cursor; stillness lets the brushwork settle back. (The signature
+ * interaction: a wanderer between painting and reality.)
+ *
+ * A wanderer stands on a rock outcrop in the foreground — drawn in
+ * code, no asset, a back-figure in the Friedrich tradition.
+ *
+ * Scroll drives `setDescent(t)`: the camera sinks, the fog thickens
+ * and rises — the white-out descent into Act I.
+ *
  * Built on WebGPURenderer + TSL — one shader codebase, runs on WebGPU
  * and falls back to WebGL2 automatically.
- *
- * First pass (Day 1). Still to come in Days 2–3: the painterly↔real
- * Kuwahara morph, the wanderer figure, the white-out descent.
  */
 import * as THREE from 'three/webgpu';
 import {
+  Fn,
+  If,
+  Loop,
   clamp,
   exp,
+  float,
   length,
   mix,
   mx_noise_float,
+  pass,
+  screenSize,
+  screenUV,
   smoothstep,
+  texture,
   time,
   uniform,
   uv,
   vec2,
   vec3,
+  vec4,
 } from 'three/tsl';
 
 /* ── Time-of-day palettes (the quintet, bent through the hours) ──── */
@@ -125,13 +142,142 @@ function fbm(p: any): any {
     .add(0.5);
 }
 
+/* ── The wanderer, drawn in code ─────────────────────────────────────
+   A back-figure on a rock outcrop, painted as a white alpha mask onto
+   an offscreen canvas (tinted via uniform in the material). No asset,
+   no download — the figure belongs to the site itself.               */
+
+const FIG_W = 768;
+const FIG_H = 1024;
+
+function jaggedPath(
+  ctx: CanvasRenderingContext2D,
+  pts: Array<[number, number]>,
+  wobble: number,
+  seed: number,
+) {
+  // deterministic wobble so every visitor sees the same rock
+  let s = seed;
+  const rnd = () => {
+    s = (s * 16807) % 2147483647;
+    return s / 2147483647 - 0.5;
+  };
+  ctx.beginPath();
+  ctx.moveTo(pts[0]![0], pts[0]![1]);
+  for (let i = 1; i < pts.length; i++) {
+    const [x, y] = pts[i]!;
+    const [px, py] = pts[i - 1]!;
+    // two intermediate jitter points per segment = hewn stone
+    for (const f of [0.35, 0.7]) {
+      ctx.lineTo(
+        px + (x - px) * f + rnd() * wobble,
+        py + (y - py) * f + rnd() * wobble,
+      );
+    }
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+function drawWanderer(): HTMLCanvasElement {
+  const cnv = document.createElement('canvas');
+  cnv.width = FIG_W;
+  cnv.height = FIG_H;
+  const ctx = cnv.getContext('2d')!;
+  ctx.fillStyle = '#fff';
+
+  /* the rock outcrop — runs off the bottom edge, hewn in three passes */
+  const rock: Array<[number, number]> = [
+    [70, FIG_H + 40], [105, 940], [185, 895], [255, 905], [330, 862],
+    [395, 852], [455, 878], [540, 858], [620, 896], [690, 932],
+    [710, FIG_H + 40],
+  ];
+  ctx.globalAlpha = 1;
+  jaggedPath(ctx, rock, 14, 1234);
+  ctx.fill();
+  ctx.globalAlpha = 0.65;
+  jaggedPath(ctx, rock.map(([x, y]) => [x + 6, y - 10]), 22, 987);
+  ctx.fill();
+  ctx.globalAlpha = 0.4;
+  jaggedPath(ctx, rock.map(([x, y]) => [x - 8, y - 16]), 26, 555);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  /* the figure — feet planted at (~392, 862), height ~470 */
+  ctx.beginPath();
+  // legs (below the coat hem, y 795 → 868)
+  ctx.moveTo(366, 795);
+  ctx.lineTo(362, 852); ctx.lineTo(354, 864); ctx.lineTo(386, 866);
+  ctx.lineTo(384, 798);
+  ctx.lineTo(402, 798);
+  ctx.lineTo(404, 858); ctx.lineTo(398, 868); ctx.lineTo(430, 864);
+  ctx.lineTo(420, 795);
+  ctx.closePath();
+  ctx.fill();
+
+  // the coat — long, flared, hem blown to the left by the wind
+  ctx.beginPath();
+  ctx.moveTo(352, 528); // left shoulder
+  ctx.bezierCurveTo(336, 560, 330, 640, 326, 706);
+  ctx.bezierCurveTo(322, 752, 306, 782, 296, 800); // wind-thrown hem tail
+  ctx.bezierCurveTo(330, 808, 366, 802, 396, 800); // hem underside
+  ctx.bezierCurveTo(420, 800, 442, 802, 452, 796);
+  ctx.bezierCurveTo(450, 740, 448, 660, 444, 590);
+  ctx.bezierCurveTo(442, 556, 440, 538, 434, 526); // right shoulder
+  ctx.bezierCurveTo(420, 508, 366, 508, 352, 528); // collar line
+  ctx.closePath();
+  ctx.fill();
+
+  // right arm reaching out to the walking stick
+  ctx.beginPath();
+  ctx.moveTo(436, 545);
+  ctx.bezierCurveTo(456, 570, 468, 612, 474, 650);
+  ctx.lineTo(484, 668);
+  ctx.lineTo(462, 676);
+  ctx.bezierCurveTo(452, 640, 442, 600, 434, 580);
+  ctx.closePath();
+  ctx.fill();
+
+  // the walking stick, planted on the rock
+  ctx.save();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(474, 654);
+  ctx.lineTo(492, 880);
+  ctx.stroke();
+  ctx.restore();
+
+  // neck + head, hair lifted by the same wind that throws the coat
+  ctx.beginPath();
+  ctx.moveTo(380, 532);
+  ctx.lineTo(378, 502); ctx.lineTo(404, 502); ctx.lineTo(404, 532);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(391, 466, 28, 35, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath(); // wind tuft
+  ctx.moveTo(372, 440);
+  ctx.bezierCurveTo(354, 432, 344, 440, 338, 450);
+  ctx.bezierCurveTo(352, 452, 366, 456, 374, 462);
+  ctx.closePath();
+  ctx.fill();
+
+  return cnv;
+}
+
 /* ── Scene ───────────────────────────────────────────────────────── */
 
 const FOG_LAYERS = 7;
 const SKY_DIST = 70;
 const CAM_FOV = 55;
+const KUWAHARA_RADIUS = 4; // brush size of the painting
 
 export interface SummitHandle {
+  /** 0 = standing on the summit, 1 = fully sunk into the white-out */
+  setDescent(t: number): void;
   dispose(): void;
 }
 
@@ -150,7 +296,8 @@ export async function mountSummit(
     return null;
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  // post pass taps every pixel ~100×; 1.5 dpr is plenty for soft fog
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
@@ -171,6 +318,7 @@ export async function mountSummit(
   const uSunIntensity = uniform(0.9);
   const uSkyAspect = uniform(1.8);
   const uWind = uniform(new THREE.Vector2(0, 0));
+  const uDescent = uniform(0);
 
   /* ── the sky ── */
   const skyMat = new THREE.MeshBasicNodeMaterial();
@@ -196,17 +344,14 @@ export async function mountSummit(
   interface FogLayer {
     mesh: THREE.Mesh;
     color: ReturnType<typeof uniform>;
-    depth: number; // 0 far … 1 near
+    depth: number; // 0 far … ~1.2 in front of the wanderer
   }
   const fogLayers: FogLayer[] = [];
 
-  for (let i = 0; i < FOG_LAYERS; i++) {
-    const depth = i / (FOG_LAYERS - 1); // 0 = farthest
-    const z = -48 + depth * 42; // -48 … -6
-    const seed = 17.31 * (i + 1);
+  function addFogLayer(depth: number, z: number, baseOpacity: number, order: number) {
+    const seed = 17.31 * (depth * 7 + 1);
     const speed = 0.004 + depth * 0.012; // near fog drifts faster
     const drift = 0.35 + depth * 0.85; // wind grip per layer
-    const baseOpacity = 0.42 + depth * 0.4;
 
     const uLayerColor = uniform(new THREE.Color());
     const mat = new THREE.MeshBasicNodeMaterial();
@@ -226,8 +371,13 @@ export async function mountSummit(
         smoothstep(1.0, 0.95, u.x),
       );
       mat.colorNode = uLayerColor;
+      // descent: the sea thickens and climbs until it swallows the view
+      const shape = body.mul(topFade).add(floor.mul(0.85)).mul(edge);
       mat.opacityNode = clamp(
-        body.mul(topFade).add(floor.mul(0.85)).mul(edge).mul(baseOpacity),
+        shape
+          .mul(baseOpacity)
+          .mul(uDescent.mul(1.4).add(1))
+          .add(uDescent.mul(uDescent).mul(0.55).mul(edge)),
         0,
         1,
       );
@@ -235,10 +385,31 @@ export async function mountSummit(
 
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.position.z = z;
-    mesh.renderOrder = i;
+    mesh.renderOrder = order;
     scene.add(mesh);
     fogLayers.push({ mesh, color: uLayerColor, depth });
   }
+
+  for (let i = 0; i < FOG_LAYERS; i++) {
+    const depth = i / (FOG_LAYERS - 1); // 0 = farthest
+    addFogLayer(depth, -48 + depth * 42, 0.42 + depth * 0.4, i);
+  }
+
+  /* ── the wanderer on the rock (between far fog and the front wisp) ── */
+  const figTexture = new THREE.CanvasTexture(drawWanderer());
+  const uFigure = uniform(new THREE.Color(0x181522)); // ink, a breath of warmth
+  const figMat = new THREE.MeshBasicNodeMaterial();
+  figMat.transparent = true;
+  figMat.depthWrite = false;
+  figMat.colorNode = uFigure;
+  figMat.opacityNode = texture(figTexture).a;
+  const figure = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), figMat);
+  figure.position.z = -4;
+  figure.renderOrder = 50;
+  scene.add(figure);
+
+  // one wisp of fog drifts in front of him — he stands inside the sea
+  addFogLayer(1.15, -2, 0.15, 60);
 
   /* ── palette → uniforms, synced with the visitor's clock ── */
   function applyPalette() {
@@ -263,12 +434,109 @@ export async function mountSummit(
     const near = new THREE.Color(p.fogNear);
     for (const layer of fogLayers) {
       (layer.color.value as THREE.Color).copy(
-        far.clone().lerp(near, layer.depth),
+        far.clone().lerp(near, Math.min(layer.depth, 1)),
       );
     }
   }
   applyPalette();
   const paletteTimer = window.setInterval(applyPalette, 60_000);
+
+  /* ── the painting: Kuwahara post + the lens of reality ──────────
+     The scene is rendered, then rebuilt from brush-stroke sectors.
+     uReality (mouse movement) opens a sharp window around the cursor;
+     stillness lets the paint settle back over the world.            */
+  const uPointerUv = uniform(new THREE.Vector2(0.5, 0.5));
+  const uReality = uniform(0);
+
+  const postProcessing = new THREE.RenderPipeline(renderer);
+  const scenePass = pass(scene, camera);
+  const sceneTex = scenePass.getTextureNode();
+
+  const painted = Fn(() => {
+    const texel = vec2(1).div(screenSize);
+    const n = float((KUWAHARA_RADIUS + 1) * (KUWAHARA_RADIUS + 1));
+
+    const m0 = vec3(0).toVar();
+    const m1 = vec3(0).toVar();
+    const m2 = vec3(0).toVar();
+    const m3 = vec3(0).toVar();
+    const s0 = vec3(0).toVar();
+    const s1 = vec3(0).toVar();
+    const s2 = vec3(0).toVar();
+    const s3 = vec3(0).toVar();
+
+    Loop(
+      { start: 0, end: KUWAHARA_RADIUS, condition: '<=', type: 'float' },
+      ({ i }) => {
+        Loop(
+          { start: 0, end: KUWAHARA_RADIUS, condition: '<=', type: 'float' },
+          ({ i: j }) => {
+            const off = vec2(i, j).mul(texel);
+            const cA = sceneTex
+              .sample(screenUV.add(off.mul(vec2(-1, -1))))
+              .rgb.toVar();
+            const cB = sceneTex
+              .sample(screenUV.add(off.mul(vec2(1, -1))))
+              .rgb.toVar();
+            const cC = sceneTex
+              .sample(screenUV.add(off.mul(vec2(-1, 1))))
+              .rgb.toVar();
+            const cD = sceneTex
+              .sample(screenUV.add(off.mul(vec2(1, 1))))
+              .rgb.toVar();
+            m0.addAssign(cA);
+            s0.addAssign(cA.mul(cA));
+            m1.addAssign(cB);
+            s1.addAssign(cB.mul(cB));
+            m2.addAssign(cC);
+            s2.addAssign(cC.mul(cC));
+            m3.addAssign(cD);
+            s3.addAssign(cD.mul(cD));
+          },
+        );
+      },
+    );
+
+    const result = vec3(0).toVar();
+    const minVar = float(100).toVar();
+    const pick = (m: typeof m0, s: typeof s0) => {
+      const mean = m.div(n);
+      const variance = s.div(n).sub(mean.mul(mean));
+      const metric = variance.x.add(variance.y).add(variance.z);
+      If(metric.lessThan(minVar), () => {
+        minVar.assign(metric);
+        result.assign(mean);
+      });
+    };
+    pick(m0, s0);
+    pick(m1, s1);
+    pick(m2, s2);
+    pick(m3, s3);
+    return result;
+  })();
+
+  const aspect = screenSize.x.div(screenSize.y);
+  const lensDist = length(screenUV.sub(uPointerUv).mul(vec2(aspect, 1)));
+  const lens = smoothstep(0.45, 0.05, lensDist);
+  const reality = uReality.mul(lens.mul(0.88).add(0.12));
+
+  // paper tooth lives only in the painting, never in reality
+  const grain = mx_noise_float(
+    vec3(screenUV.mul(screenSize).mul(0.5), time.mul(0.35)),
+  )
+    .mul(0.045)
+    .mul(reality.oneMinus());
+
+  const paintedWarm = painted.mul(vec3(1.015, 1.0, 0.975)).add(grain);
+  const blended = mix(paintedWarm, sceneTex.rgb, reality);
+  const vignette = float(1).sub(
+    length(screenUV.sub(vec2(0.5))).pow(2).mul(0.32),
+  );
+
+  const debugLens = new URLSearchParams(window.location.search).has('lens');
+  postProcessing.outputNode = debugLens
+    ? vec4(vec3(lens), 1)
+    : vec4(blended.mul(vignette), 1);
 
   /* ── fit planes to the camera frustum ── */
   function fit() {
@@ -292,24 +560,46 @@ export async function mountSummit(
       const fw = fh * camera.aspect;
       layer.mesh.scale.set(fw * 1.8, fh * 0.85, 1);
       // far layers sit higher (the sea recedes), near layers swallow the base
-      layer.mesh.position.y = -fh * (0.22 + layer.depth * 0.16);
+      layer.mesh.position.y = -fh * (0.22 + Math.min(layer.depth, 1) * 0.16);
     }
+
+    // the wanderer: golden-section right of centre, facing the sun,
+    // rock running off the bottom of the frame
+    const figDist = camera.position.z - figure.position.z;
+    const fh = frustumHeightAt(figDist);
+    const fw = fh * camera.aspect;
+    const figH = fh * 0.58;
+    const figW = figH * (FIG_W / FIG_H);
+    figure.scale.set(figW, figH, 1);
+    figure.position.y = -fh / 2 + figH * 0.4;
+    figure.position.x = Math.min(fw * 0.115, figW * 0.7);
   }
   fit();
   window.addEventListener('resize', fit);
 
-  /* ── mouse is wind ── */
+  /* ── mouse is wind (and the hand that wipes the paint away) ── */
   const pointer = new THREE.Vector2(0, 0);
   const windVel = new THREE.Vector2(0.006, 0); // a baseline breeze
+  let activity = 0;
+  let lastPx = 0.5;
+  let lastPy = 0.5;
   function onPointerMove(e: PointerEvent) {
-    pointer.set(
-      (e.clientX / window.innerWidth) * 2 - 1,
-      (e.clientY / window.innerHeight) * 2 - 1,
+    const px = e.clientX / window.innerWidth;
+    const py = e.clientY / window.innerHeight;
+    pointer.set(px * 2 - 1, py * 2 - 1);
+    // screenUV origin is top-left (WebGPU convention) — no Y flip
+    (uPointerUv.value as THREE.Vector2).set(px, py);
+    activity = Math.min(
+      1,
+      activity + (Math.abs(px - lastPx) + Math.abs(py - lastPy)) * 5,
     );
+    lastPx = px;
+    lastPy = py;
   }
   window.addEventListener('pointermove', onPointerMove, { passive: true });
 
   /* ── loop ── */
+  let descent = 0;
   let last = performance.now();
   let firstFrame = true;
 
@@ -324,12 +614,22 @@ export async function mountSummit(
     wind.x += windVel.x * dt;
     wind.y += windVel.y * dt;
 
-    // the head turns into the breeze
-    camera.position.x += (pointer.x * 0.9 - camera.position.x) * 0.03;
-    camera.position.y += (pointer.y * -0.35 - camera.position.y) * 0.03;
-    camera.lookAt(0, 0, -SKY_DIST);
+    // reality follows the moving hand, the paint settles when it rests
+    activity *= Math.exp(-dt / 0.9);
+    const cur = uReality.value as number;
+    uReality.value = cur + (activity - cur) * (activity > cur ? 0.14 : 0.05);
 
-    renderer.render(scene, camera);
+    // the head turns into the breeze; the descent sinks the whole gaze
+    const sink = descent * descent * 3.4;
+    camera.position.x += (pointer.x * 0.9 - camera.position.x) * 0.03;
+    camera.position.y +=
+      (pointer.y * -0.35 - sink - camera.position.y) * (descent > 0 ? 0.2 : 0.03);
+    camera.lookAt(0, -sink, -SKY_DIST);
+
+    // the wanderer breathes with the wind, almost imperceptibly
+    figure.rotation.z = Math.sin(now * 0.0004) * 0.004 + windVel.x * 0.18;
+
+    postProcessing.render();
 
     if (firstFrame) {
       firstFrame = false;
@@ -346,12 +646,17 @@ export async function mountSummit(
   io.observe(canvas);
 
   return {
+    setDescent(t: number) {
+      descent = Math.min(Math.max(t, 0), 1);
+      uDescent.value = descent;
+    },
     dispose() {
       io.disconnect();
       window.clearInterval(paletteTimer);
       window.removeEventListener('resize', fit);
       window.removeEventListener('pointermove', onPointerMove);
       renderer.setAnimationLoop(null);
+      figTexture.dispose();
       renderer.dispose();
     },
   };
