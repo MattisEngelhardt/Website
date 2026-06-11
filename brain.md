@@ -9,7 +9,7 @@
 2. **Während der Session:** neue Findings sofort hier eintragen
 3. **Session-Ende (großer Sessions):** `HANDOFF.md` aktualisieren — perfekter Handoff-Prompt an den nächsten Fable, beginnt mit `@PLAN.md @brain.md`; knapp, verweist auf brain.md statt zu duplizieren
 
-## Status (Stand: 11.06.2026 Nachmittag, Tag 2 von 12)
+## Status (Stand: 11.06.2026 Abend, Tag 2 von 12 — Tag-4-Werk vorgezogen)
 
 - ✅ Tag 1 komplett (Skeleton, Art-Direction, 5 Routen, Hero erster Pass)
 - ✅ **Akt-0-Meisterstück (Tag 2–3-Kern) gebaut UND im Browser verifiziert** (Playwright + System-Chrome, echtes WebGPU, 0 Console-Errors, `VERDICT: PASS`):
@@ -28,6 +28,12 @@
   - `src/lib/passage.ts` = EIN Layout-Script (läuft 1×/Session): Quality-Gate, Daypart, World-Controller-Registry (mount/cleanup), Veil-Choreografie. Per-Page-Scripts sind abgeschafft!
   - Welt-Controller in `src/worlds/` (summit.ts = Szene+Descent+Reveals mit gsap.context-Revert; common.ts = Default-Reveals für Text-Welten)
   - Veil: 3 gestaffelte Pinselstrich-Bahnen (CSS-only, kein gsap im Initial-Bundle) in Ziel-Welt-Palette + Kapitel-Tafel („Act I — The Sea"), Element überlebt Swap via `transition:persist`; Richtung folgt Akt-Index (vor/zurück). Swap passiert erst bei voller Deckung (Loader-Extend in `astro:before-preparation`) → verdeckt WebGPU-Init beim Remount
+- ✅ **Akt I — Das Meer (Tag-4-Werk) gebaut UND runtime-verifiziert** (verify-sea.mjs `PASS`, danach hero+passage erneut `PASS`, Build grün, 0 Errors):
+  - **Gerstner-Ozean** in TSL (6 Wellenzüge, positionNode-Displacement, analytische Normalen via varying), Tiefwasser-Dispersion, gesamt-Amplitude ~0,85 (Kamera reitet ÜBER der See, y 5,2)
+  - **Aivazovsky-Licht von Hand**: Sonnenstraße = Reflexionsvektor `pow(18)` + Sparkle `pow(140)` exakt unter der Sonnenscheibe (Azimut-Match!), Glas-Kämme, Aerial-Fade gedeckelt auf 0,88 (sonst Milchsee), Paletten-Lerp GOLDEN_SEA→DUSK_SEA über `setVoyage(t)`
+  - **Schiff prozedural** (drawShip, Brigg): Alpha-Kanal kodiert Material — Segel ~0,5 → sonnendurchleuchtetes Tuch (uSail), Rumpf/Masten/Rigg 1,0 → Tinte; CPU-Wellen-Spiegel lässt es ehrlich stampfen (gemeinsames uTime statt TSL-`time` → GPU/CPU-Sync!)
+  - **Cursor = Lichtpinsel**: Pointer-Ray auf Wasserebene projiziert, Spur in 256²-Canvas (lighten/fade), als CanvasTexture (flipY=false!) in Welt-XZ gesampelt — Licht bleibt liegen, wo die Hand war
+  - **Voyage-Scroll** (320svh): Schiff segelt aus dem fernen Licht heran, Dämmerung vertieft sich, Kamera sinkt; 3 Log-Captions (aria-hidden Flavor) tauchen in Scroll-Fenstern auf; **Goldblende in zwei Atemzügen** (gold-veil → page-veil/Canvas) löst auf die Buchseite; echte Bio im „Ship's Log" (paper, SEO)
 - ⏳ Noch offen aus Tag 2–3: Sound-Layer (kann auch in Tag-11-Polish)
 - ⏳ GitHub-Repo + Deploy (braucht `gh auth login` von Mattis); **FPS-Check auf echtem Gerät** (Kuwahara = ~100 Taps/Pixel; Headless kann keine ehrliche FPS messen — Mattis soll einmal scrollen/wedeln und auf Ruckeln achten)
 - Deadline: **22.06.2026** (Roadmap in PLAN.md; Tag 4 = Akt I Meer)
@@ -50,7 +56,11 @@
 - `src/components/PathNav.astro` — „Der Pfad", persistente Pilger-Nav, 5 Stationen
 - `src/lib/quality.ts` — Erlebnis-Gate; `src/lib/journey.ts` — Lenis+GSAP-Singleton (`anchors: true`)
 - `src/scenes/summit.ts` — Akt 0 komplett: 7+1 Fog-Layer (fbm, TSL; Layer 8 = Wisp VOR der Figur), Tageszeit-Paletten (CPU-lerp → Uniforms), Maus = Wind + Kamera-Parallax, **Wanderer-Figur** (`drawWanderer()`, prozedurale Canvas-Alphamaske, tintbar via uFigure), **Kuwahara-RenderPipeline + Realitäts-Linse** (uReality/uPointerUv), **`setDescent(t)`** im Handle für den White-out. Dev-Tools: **`?hour=19.5`** (Tageszeit), **`?lens`** (Linsen-Maske)
-- `src/lib/passage.ts` — **Die Passage**: ClientRouter-Lifecycle, Veil-Choreografie (closeVeil/openVeil über `transitionend`), World-Registry (`CONTROLLERS`-Map → dynamic imports), restauriert `data-mode`/`data-daypart` in `astro:after-swap` (Router wischt ALLE `<html>`-Attribute!), Lenis stop/sync/start um Swaps herum
+- `src/scenes/painting.ts` — **geteilte Painting-Pipeline** (Kuwahara + Grain + Vignette, optional Linse): `createPainting(renderer, scene, camera, { radius, lens })` → beide Szenen nutzen sie; three/webgpu-Kern liegt dadurch in EINEM lazy Chunk (783 KB), Szenen-Code je ~8 KB
+- `src/scenes/sea.ts` — Akt I komplett: Gerstner-Wasser, Sky mit Sonnenscheibe+Band, Schiff (`drawShip()`), Lichtspur-Canvas, `setVoyage(t)` im Handle. Wellen-Konstanten in `WAVE_CONSTS` (GPU+CPU)
+- `src/worlds/sea.ts` — Voyage-Timeline (scrub → setVoyage, Captions-Fenster, Goldblende 2-stufig), Log-Reveals
+- Act-Hero-Grammatik (`.hero`, `.frontispiece`, `.descend`, `.paper`) ist GLOBAL (global.css) — Seiten liefern nur noch eigene Hintergründe/Specials
+- `src/lib/passage.ts` — **Die Passage**: ClientRouter-Lifecycle, Veil-Choreografie (closeVeil/openVeil über `transitionend`), World-Registry (`CONTROLLERS`-Map → dynamic imports; summit+sea registriert), restauriert `data-mode`/`data-daypart` in `astro:after-swap` (Router wischt ALLE `<html>`-Attribute!), Lenis stop/sync/start um Swaps herum
 - `src/lib/daypart.ts` — Daypart-Logik (synchron halten mit Inline-Script in index.astro!)
 - `src/worlds/summit.ts` + `src/worlds/common.ts` — Welt-Controller: `mount(ctx) → cleanup`; neue Welten hier registrieren (passage.ts `CONTROLLERS`)
 - `src/pages/index.astro` — descent-track (280svh, nur `[data-mode='full']`), sticky Hero, `.fog-veil`, Paper-Sektion `#descent`; KEIN eigenes Script mehr (Logik im Controller)
@@ -68,7 +78,8 @@
 ## Runtime-Verifikation (etabliert 11.06., immer nutzen!)
 
 - **`node scripts/verify-hero.mjs`** (Dev-Server muss laufen): fährt System-Chrome headless (echtes WebGPU!), prüft Paletten/`?hour`, Linsen-Maske (`?lens`), Descent-Scroll, Katalog-Gate; Screenshots nach `verify-out/` (gitignored) → mit Read-Tool ansehen
-- **`node scripts/verify-passage.mjs`**: echte Navigationen (summit↔sea ×3, History back/forward, Anker-Link, Katalog-Modus) — prüft Szenen-REMOUNT, Attribut-Restore, Veil-Zyklus, 0 Errors
+- **`node scripts/verify-passage.mjs`**: echte Navigationen (summit↔sea ×3, History back/forward, Anker-Link, Katalog-Modus) — prüft Szenen-REMOUNT beider WebGPU-Szenen, Attribut-Restore, Veil-Zyklus, 0 Errors
+- **`node scripts/verify-sea.mjs`**: Voyage-Scroll (Captions-Fenster, Goldblende, Logbuch), Katalog-Gate auf /sea, Screenshots `sea-*.png`
 - Playwright als devDep installiert mit `$env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1"` (nutzt `channel: 'chrome'`, kein Browser-Download)
 - Playwright-Gotcha: Veil im Idle ist `visibility:hidden` → `waitForSelector(…, { state: 'attached' })`, sonst Timeout
 - Astro **devToolbar deaktiviert** (504 „Outdated Optimize Dep"-Rauschen in Dev; wir nutzen sie nicht)
@@ -81,6 +92,10 @@
 - **`screenUV` hat Ursprung OBEN-links** (WebGPU-Konvention) → Pointer-UV NICHT y-flippen (klassischer GL-Reflex wäre falsch — war ein echter Bug, via `?lens`-Screenshot gefunden)
 - `pass(scene, camera).getTextureNode().sample(uvNode)` funktioniert für Offset-Sampling im Kuwahara
 - Kuwahara Radius 4 = ~100 Taps/Pixel → pixelRatio auf 1.5 gedeckelt
+- **TSL-Akkumulator-Reassignment** (`let x = float(0); x = x.add(...)`) gibt ts(2322) (VarNode vs Node) → Akkumulatoren als `any` typisieren; `varying(float(x))` stellt Typen wieder her
+- **CPU/GPU-Sync**: TSL-`time` hat eigenen Ursprung — wenn CPU dieselbe Animation spiegeln muss (Schiff auf Wellen), eigenes `uTime`-Uniform aus dem Loop füttern
+- **CanvasTexture als Daten-Map**: `flipY = false` setzen, sonst ist die Welt-UV-Zuordnung gespiegelt (Default flipY=true!)
+- **Alpha-Kanal als Material-Encoder**: eine Silhouetten-Textur, Alpha-Stufen unterscheiden Stoffe (Segel 0,5 / Rumpf 1,0) → `mix(colorA, colorB, smoothstep(a))` — ein Draw, zwei Materialien
 
 ## Inspirations-Referenzen (von Mattis, 11.06. — orientieren, NIE kopieren)
 

@@ -1,7 +1,9 @@
 ---
 /**
  * Act I — The Sea. Who he is, carried by a ship through an
- * Aivazovsky sunset. Scene work lands on Day 4; the text is real now.
+ * Aivazovsky sunset. The voyage is scroll-driven; the full biography
+ * lives in the ship's log below (real HTML, SEO). Scene logic mounts
+ * via die Passage (src/worlds/sea.ts).
  */
 import World from '../layouts/World.astro';
 
@@ -11,31 +13,60 @@ const description =
 ---
 
 <World title={title} description={description} world="sea">
-  <header class="act">
-    <p class="mono-label">Act I — The Sea</p>
-    <h1>The water remembers every route.</h1>
-    <p class="lede">
-      Before the fog there was the sea: warm light, patient waves, a
-      ship that keeps moving even when the wind turns.
-    </p>
-  </header>
+  <div class="voyage-track" id="voyage-track">
+    <header class="hero" data-scene>
+      <canvas id="sea-canvas" aria-hidden="true"></canvas>
 
-  <section class="act" aria-label="Biography">
-    <h2>Who he is</h2>
-    <p>
-      Mattis Engelhardt studies business administration at
-      Nürtingen-Geislingen University (HfWU) and builds AI systems the
-      way other students take notes — constantly, by hand, to
-      understand. He works with agentic tools daily and thinks in
-      products, not exercises.
-    </p>
-    <p>
-      The founder instinct came before the degree: spot what is broken,
-      build the smallest thing that fixes it, ship, repeat. The degree
-      is the keel; the building is the sail.
-    </p>
-    <!-- TODO(content interview): real stations (jobs, internships, milestones),
-         exact phrasing he wants public, hometown/Esslingen detail -->
+      <div class="frontispiece">
+        <p class="mono-label">Act I — The Sea</p>
+        <h1>The water remembers every route.</h1>
+        <p class="tagline lede">
+          Before the fog there was the sea: warm light, patient waves,
+          a ship that keeps moving even when the wind turns.
+        </p>
+      </div>
+
+      <a class="descend mono-label" href="#log">
+        <span>Follow the ship</span>
+        <span class="descend-line" aria-hidden="true"></span>
+      </a>
+
+      <!-- voyage captions — painted flavor; the true text is in the log -->
+      <p class="caption c1 lede" aria-hidden="true">
+        Out of a quiet harbour — a lecture hall, a notebook of plans.
+      </p>
+      <p class="caption c2 lede" aria-hidden="true">
+        Cargo: agents that work the rigging while he sleeps.
+      </p>
+      <p class="caption c3 lede" aria-hidden="true">
+        Heading: open water. The chart ends where it gets interesting.
+      </p>
+
+      <!-- the gold-out: sun bloom resolving onto the page of the book -->
+      <div class="gold-veil" aria-hidden="true"></div>
+      <div class="page-veil" aria-hidden="true"></div>
+    </header>
+  </div>
+
+  <section id="log" class="paper" aria-label="Biography">
+    <div class="act">
+      <p class="mono-label">The ship&rsquo;s log</p>
+      <h2>Who he is</h2>
+      <p>
+        Mattis Engelhardt studies business administration at
+        Nürtingen-Geislingen University (HfWU) and builds AI systems the
+        way other students take notes — constantly, by hand, to
+        understand. He works with agentic tools daily and thinks in
+        products, not exercises.
+      </p>
+      <p>
+        The founder instinct came before the degree: spot what is broken,
+        build the smallest thing that fixes it, ship, repeat. The degree
+        is the keel; the building is the sail.
+      </p>
+      <!-- TODO(content interview): real stations (jobs, internships, milestones),
+           exact phrasing he wants public, hometown/Esslingen detail -->
+    </div>
   </section>
 
   <footer class="act">
@@ -51,9 +82,81 @@ const description =
     background: linear-gradient(to bottom, var(--c-ink), #2a3552 60%, #3e4a66);
   }
 
-  h1,
-  h2 {
-    color: var(--c-sun);
+  /* the scroll runway of the voyage — catalogue readers sail straight through */
+  :global([data-mode='full']) .voyage-track {
+    height: 320svh;
+  }
+
+  /* painted fallback marine — also the LCP backdrop while the scene streams in */
+  .hero {
+    background: linear-gradient(
+      to bottom,
+      #35466e 0%,
+      #c97f4e 34%,
+      #ffb45e 47%,
+      #2e7a76 56%,
+      #16243c 100%
+    );
+  }
+
+  h1 {
+    text-shadow: 0 2px 44px rgb(20 18 31 / 0.45);
+  }
+
+  :global(#log) h2 {
+    color: var(--c-ink);
+  }
+
+  /* ── voyage captions, set like plate inscriptions on the painting ── */
+  .caption {
+    position: absolute;
+    z-index: 1;
+    max-width: 24ch;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    color: var(--c-canvas);
+    text-shadow: 0 1px 24px rgb(20 18 31 / 0.65);
+  }
+
+  .c1 { left: clamp(1.5rem, 8vw, 9rem); top: 22%; }
+  .c2 { right: clamp(1.5rem, 7vw, 8rem); top: 26%; text-align: right; }
+  .c3 { left: clamp(1.5rem, 9vw, 10rem); bottom: 26%; }
+
+  :global([data-mode='catalog']) .caption,
+  :global([data-mode='catalog']) .gold-veil,
+  :global([data-mode='catalog']) .page-veil {
+    display: none;
+  }
+
+  /* ── the gold-out, in two breaths: sun bloom, then the page ── */
+  .gold-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      120% 95% at 56% 40%,
+      #fff1c0 0%,
+      #ffc95c 38%,
+      #e8833a 72%,
+      #c9452a 100%
+    );
+  }
+
+  .page-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+    background: var(--c-canvas);
+  }
+
+  /* ── onward ── */
+  footer {
+    color: var(--c-canvas);
   }
 
   .onward {

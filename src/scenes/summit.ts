@@ -21,18 +21,11 @@
  */
 import * as THREE from 'three/webgpu';
 import {
-  Fn,
-  If,
-  Loop,
   clamp,
   exp,
-  float,
   length,
   mix,
   mx_noise_float,
-  pass,
-  screenSize,
-  screenUV,
   smoothstep,
   texture,
   time,
@@ -40,8 +33,8 @@ import {
   uv,
   vec2,
   vec3,
-  vec4,
 } from 'three/tsl';
+import { createPainting } from './painting';
 
 /* ── Time-of-day palettes (the quintet, bent through the hours) ──── */
 
@@ -441,102 +434,14 @@ export async function mountSummit(
   applyPalette();
   const paletteTimer = window.setInterval(applyPalette, 60_000);
 
-  /* ── the painting: Kuwahara post + the lens of reality ──────────
-     The scene is rendered, then rebuilt from brush-stroke sectors.
+  /* ── the painting: shared Kuwahara pipeline, summit carries the lens.
      uReality (mouse movement) opens a sharp window around the cursor;
      stillness lets the paint settle back over the world.            */
-  const uPointerUv = uniform(new THREE.Vector2(0.5, 0.5));
-  const uReality = uniform(0);
-
-  const postProcessing = new THREE.RenderPipeline(renderer);
-  const scenePass = pass(scene, camera);
-  const sceneTex = scenePass.getTextureNode();
-
-  const painted = Fn(() => {
-    const texel = vec2(1).div(screenSize);
-    const n = float((KUWAHARA_RADIUS + 1) * (KUWAHARA_RADIUS + 1));
-
-    const m0 = vec3(0).toVar();
-    const m1 = vec3(0).toVar();
-    const m2 = vec3(0).toVar();
-    const m3 = vec3(0).toVar();
-    const s0 = vec3(0).toVar();
-    const s1 = vec3(0).toVar();
-    const s2 = vec3(0).toVar();
-    const s3 = vec3(0).toVar();
-
-    Loop(
-      { start: 0, end: KUWAHARA_RADIUS, condition: '<=', type: 'float' },
-      ({ i }) => {
-        Loop(
-          { start: 0, end: KUWAHARA_RADIUS, condition: '<=', type: 'float' },
-          ({ i: j }) => {
-            const off = vec2(i, j).mul(texel);
-            const cA = sceneTex
-              .sample(screenUV.add(off.mul(vec2(-1, -1))))
-              .rgb.toVar();
-            const cB = sceneTex
-              .sample(screenUV.add(off.mul(vec2(1, -1))))
-              .rgb.toVar();
-            const cC = sceneTex
-              .sample(screenUV.add(off.mul(vec2(-1, 1))))
-              .rgb.toVar();
-            const cD = sceneTex
-              .sample(screenUV.add(off.mul(vec2(1, 1))))
-              .rgb.toVar();
-            m0.addAssign(cA);
-            s0.addAssign(cA.mul(cA));
-            m1.addAssign(cB);
-            s1.addAssign(cB.mul(cB));
-            m2.addAssign(cC);
-            s2.addAssign(cC.mul(cC));
-            m3.addAssign(cD);
-            s3.addAssign(cD.mul(cD));
-          },
-        );
-      },
-    );
-
-    const result = vec3(0).toVar();
-    const minVar = float(100).toVar();
-    const pick = (m: typeof m0, s: typeof s0) => {
-      const mean = m.div(n);
-      const variance = s.div(n).sub(mean.mul(mean));
-      const metric = variance.x.add(variance.y).add(variance.z);
-      If(metric.lessThan(minVar), () => {
-        minVar.assign(metric);
-        result.assign(mean);
-      });
-    };
-    pick(m0, s0);
-    pick(m1, s1);
-    pick(m2, s2);
-    pick(m3, s3);
-    return result;
-  })();
-
-  const aspect = screenSize.x.div(screenSize.y);
-  const lensDist = length(screenUV.sub(uPointerUv).mul(vec2(aspect, 1)));
-  const lens = smoothstep(0.45, 0.05, lensDist);
-  const reality = uReality.mul(lens.mul(0.88).add(0.12));
-
-  // paper tooth lives only in the painting, never in reality
-  const grain = mx_noise_float(
-    vec3(screenUV.mul(screenSize).mul(0.5), time.mul(0.35)),
-  )
-    .mul(0.045)
-    .mul(reality.oneMinus());
-
-  const paintedWarm = painted.mul(vec3(1.015, 1.0, 0.975)).add(grain);
-  const blended = mix(paintedWarm, sceneTex.rgb, reality);
-  const vignette = float(1).sub(
-    length(screenUV.sub(vec2(0.5))).pow(2).mul(0.32),
-  );
-
-  const debugLens = new URLSearchParams(window.location.search).has('lens');
-  postProcessing.outputNode = debugLens
-    ? vec4(vec3(lens), 1)
-    : vec4(blended.mul(vignette), 1);
+  const painting = createPainting(renderer, scene, camera, {
+    radius: KUWAHARA_RADIUS,
+    lens: true,
+  });
+  const { uPointerUv, uReality } = painting;
 
   /* ── fit planes to the camera frustum ── */
   function fit() {
@@ -629,7 +534,7 @@ export async function mountSummit(
     // the wanderer breathes with the wind, almost imperceptibly
     figure.rotation.z = Math.sin(now * 0.0004) * 0.004 + windVel.x * 0.18;
 
-    postProcessing.render();
+    painting.render();
 
     if (firstFrame) {
       firstFrame = false;
@@ -657,6 +562,7 @@ export async function mountSummit(
       window.removeEventListener('pointermove', onPointerMove);
       renderer.setAnimationLoop(null);
       figTexture.dispose();
+      painting.dispose();
       renderer.dispose();
     },
   };

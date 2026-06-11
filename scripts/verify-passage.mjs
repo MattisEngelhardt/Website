@@ -76,6 +76,8 @@ try {
   check('data-mode survived the swap', sea.mode === 'full');
   check('data-daypart survived the swap', !!sea.daypart);
   check('sea content is real', sea.h1.includes('water remembers'));
+  await page.waitForSelector('.hero.is-live', { timeout: 25_000 });
+  check('sea scene mounted after swap (is-live)', true);
   await page.screenshot({ path: `${outDir}/passage-sea.png` });
 
   // back: the summit scene must REMOUNT (the lifecycle acid test)

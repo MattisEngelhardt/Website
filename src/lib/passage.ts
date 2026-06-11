@@ -46,6 +46,7 @@ const WORLDS: Record<WorldName, { act: string; name: string; index: number }> = 
 /** worlds with their own controller; everything else gets the shared one */
 const CONTROLLERS: Partial<Record<WorldName, () => Promise<WorldModule>>> = {
   summit: () => import('../worlds/summit'),
+  sea: () => import('../worlds/sea'),
 };
 const defaultController = (): Promise<WorldModule> => import('../worlds/common');
 
