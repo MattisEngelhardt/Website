@@ -1,0 +1,70 @@
+---
+/**
+ * Act I — The Sea. Who he is, carried by a ship through an
+ * Aivazovsky sunset. Scene work lands on Day 4; the text is real now.
+ */
+import World from '../layouts/World.astro';
+
+const title = 'The Sea — Who Mattis Engelhardt Is';
+const description =
+  'Act I of the journey: business student at HfWU, AI builder, founder mind. A biography told as a ship crossing an oil-painted sunset sea.';
+---
+
+<World title={title} description={description} world="sea">
+  <header class="act">
+    <p class="mono-label">Act I — The Sea</p>
+    <h1>The water remembers every route.</h1>
+    <p class="lede">
+      Before the fog there was the sea: warm light, patient waves, a
+      ship that keeps moving even when the wind turns.
+    </p>
+  </header>
+
+  <section class="act" aria-label="Biography">
+    <h2>Who he is</h2>
+    <p>
+      Mattis Engelhardt studies business administration at
+      Nürtingen-Geislingen University (HfWU) and builds AI systems the
+      way other students take notes — constantly, by hand, to
+      understand. He works with agentic tools daily and thinks in
+      products, not exercises.
+    </p>
+    <p>
+      The founder instinct came before the degree: spot what is broken,
+      build the smallest thing that fixes it, ship, repeat. The degree
+      is the keel; the building is the sail.
+    </p>
+    <!-- TODO(content interview): real stations (jobs, internships, milestones),
+         exact phrasing he wants public, hometown/Esslingen detail -->
+  </section>
+
+  <footer class="act">
+    <a class="onward" href="/city">
+      <span class="mono-label">Continue the journey</span>
+      <span class="onward-name">Act II — The City of Agents</span>
+    </a>
+  </footer>
+</World>
+
+<style>
+  :global([data-world='sea']) {
+    background: linear-gradient(to bottom, var(--c-ink), #2a3552 60%, #3e4a66);
+  }
+
+  h1,
+  h2 {
+    color: var(--c-sun);
+  }
+
+  .onward {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+    padding-block: 1rem;
+  }
+
+  .onward-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+</style>

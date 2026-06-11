@@ -1,0 +1,139 @@
+---
+/**
+ * Der Pfad — the pilgrim's map. A thin walking line with five stations.
+ * Persistent across worlds; the current station glows like a waymark.
+ */
+export interface Props {
+  current: string;
+}
+
+const { current } = Astro.props;
+
+const stations = [
+  { slug: 'summit', href: '/', label: 'The Summit', numeral: '0' },
+  { slug: 'sea', href: '/sea', label: 'The Sea', numeral: 'I' },
+  { slug: 'city', href: '/city', label: 'The City', numeral: 'II' },
+  { slug: 'camino', href: '/camino', label: 'The Way', numeral: 'III' },
+  { slug: 'horizon', href: '/horizon', label: 'The Horizon', numeral: 'IV' },
+];
+---
+
+<nav class="path" aria-label="The Path — journey between worlds">
+  <ol>
+    {
+      stations.map((s) => (
+        <li>
+          <a
+            href={s.href}
+            aria-current={current === s.slug ? 'page' : undefined}
+          >
+            <span class="waymark" aria-hidden="true" />
+            <span class="station-label">
+              <span class="numeral">{s.numeral}</span> {s.label}
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .path {
+    position: fixed;
+    bottom: clamp(1rem, 3vh, 2rem);
+    left: 50%;
+    translate: -50% 0;
+    z-index: 100;
+  }
+
+  ol {
+    display: flex;
+    align-items: center;
+    gap: clamp(1.25rem, 4vw, 2.5rem);
+    list-style: none;
+    padding: 0.65rem 1.4rem;
+    margin: 0;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--c-ink) 55%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in oklab, var(--c-canvas) 12%, transparent);
+    /* the walking line through the stations */
+    background-image: linear-gradient(
+      to right,
+      transparent 8%,
+      color-mix(in oklab, var(--c-canvas) 18%, transparent) 8%,
+      color-mix(in oklab, var(--c-canvas) 18%, transparent) 92%,
+      transparent 92%
+    );
+    background-size: 100% 1px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 0.4rem;
+    text-decoration: none;
+  }
+
+  .waymark {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--c-canvas) 38%, transparent);
+    transition:
+      background var(--t-flick) var(--ease-lift),
+      box-shadow var(--t-flick) var(--ease-lift),
+      scale var(--t-flick) var(--ease-lift);
+  }
+
+  a:hover .waymark {
+    background: var(--c-canvas);
+    scale: 1.25;
+  }
+
+  a[aria-current='page'] .waymark {
+    background: var(--c-sun);
+    box-shadow: 0 0 12px 2px color-mix(in oklab, var(--c-sun) 55%, transparent);
+  }
+
+  .station-label {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    translate: -50% 4px;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    letter-spacing: 0.08em;
+    color: var(--c-canvas);
+    background: color-mix(in oklab, var(--c-ink) 85%, transparent);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--t-flick) var(--ease-lift),
+      translate var(--t-flick) var(--ease-lift);
+  }
+
+  .numeral {
+    color: var(--c-sun);
+  }
+
+  a:hover .station-label,
+  a:focus-visible .station-label {
+    opacity: 1;
+    translate: -50% 0;
+  }
+
+  @media (max-width: 480px) {
+    ol {
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+    }
+  }
+</style>

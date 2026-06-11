@@ -1,0 +1,24 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+
+# environment
+.env
+.env.production
+
+# os
+.DS_Store
+Thumbs.db
+
+# raw source material from Mattis (huge originals; optimized copies ship via src/ or public/)
+assets/
+
+# runtime verification artifacts
+verify-out/

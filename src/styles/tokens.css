@@ -1,0 +1,64 @@
+/* ════════════════════════════════════════════════════════════════════
+   DER WANDERER — Art Direction Tokens (locked 2026-06-10)
+
+   One palette for the whole journey: Mattis' painting quintet, drawn
+   from the Aivazovsky sunset he carries as his banner. Every world uses
+   a subset; the city shifts the same hues into neon. Never invent new
+   hues — mix these.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── The Quintet ─────────────────────────────────────────────── */
+  --c-sun:       #ffc95c; /* Sonnengelb — the low sun itself */
+  --c-orange:    #e8833a; /* warm spill across water */
+  --c-vermilion: #c9452a; /* Zinnoberrot — embers at the horizon */
+  --c-babyblue:  #a9c7e4; /* high sky, far haze */
+  --c-turquoise: #3e9e98; /* sea shadow, patina */
+
+  /* ── Ground tones (mixed from the quintet, not new hues) ────── */
+  --c-ink:    #14121f; /* night-sea blue-black — deepest value */
+  --c-deep:   #1f2233; /* lifted ink, twilight */
+  --c-canvas: #f6efe3; /* warm canvas white — paper, fog, light */
+  --c-haze:   #ddd5c4; /* canvas in shadow */
+
+  /* ── Neon shift (Act II city — same hues, electrified) ──────── */
+  --c-neon-cyan:    #2ee6d6;
+  --c-neon-magenta: #ff3d7e;
+  --c-neon-sun:     #ffe066;
+
+  /* ── Typography ──────────────────────────────────────────────
+     Fraunces: display serif with book/museum character, optical
+     sizing + wonk axis = painterly at display sizes, sober at text.
+     IBM Plex Mono: the builder's hand — labels, acts, terminal.   */
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* fluid type scale (320px → 1680px viewports) */
+  --text-hero:  clamp(2.75rem, 1rem + 8vw, 8rem);
+  --text-title: clamp(2rem, 1.1rem + 3.2vw, 4.25rem);
+  --text-lede:  clamp(1.125rem, 1rem + 0.6vw, 1.5rem);
+  --text-body:  clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-small: 0.8125rem;
+
+  --leading-tight: 1.04;
+  --leading-prose: 1.6;
+  --tracking-label: 0.18em;
+
+  /* ── Motion DNA (shared across all worlds) ───────────────────
+     journey: scroll-bound movement, symmetric, heavy
+     arrive:  elements settling into place, long soft tail
+     lift:    hover/focus micro-movement                          */
+  --ease-journey: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-arrive:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-lift:    cubic-bezier(0.4, 0, 0.2, 1);
+
+  --t-flick:    240ms;  /* micro feedback */
+  --t-step:     600ms;  /* one footstep — standard reveal */
+  --t-breath:   1200ms; /* atmosphere, fades */
+  --t-setpiece: 2400ms; /* world transitions */
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  --measure: 38rem;         /* prose width */
+  --space-act: clamp(6rem, 14vh, 11rem);  /* between narrative beats */
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+}

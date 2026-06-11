@@ -1,0 +1,124 @@
+---
+/**
+ * Act II — The City of Agents. What he builds, as a neo-Tokyo pixel
+ * night. Scene + project routes land on Days 5–6; arcade on Days 7–8.
+ */
+import World from '../../layouts/World.astro';
+
+const title = 'The City of Agents — What Mattis Engelhardt Builds';
+const description =
+  'Act II: AI agent projects by Mattis Engelhardt — a multi-agent deck system, VoiceForge, StudyMind and a fully local strategy agent — rendered as a neon pixel city.';
+
+// TODO(content interview): facts per project (what, how, result, stack, screenshots)
+const projects = [
+  {
+    name: 'Multi-Agent Deck System',
+    line: 'the tallest tower — a fleet of agents that builds presentations like a studio, not a tool',
+  },
+  {
+    name: 'Strategy Agent',
+    line: 'a research agent that runs 100% locally — zero cloud, zero cost, full ownership',
+  },
+  {
+    name: 'VoiceForge',
+    line: 'voice, forged into product',
+  },
+  {
+    name: 'StudyMind',
+    line: 'studying, rebuilt around how memory actually works',
+  },
+];
+---
+
+<World title={title} description={description} world="city">
+  <header class="act">
+    <p class="mono-label">Act II — The City of Agents</p>
+    <h1>The fog tears open. Neon below.</h1>
+    <p class="lede">
+      Every building in this city is something he actually built. The
+      small figures in the streets are his agents — and they are
+      working right now.
+    </p>
+  </header>
+
+  <section class="act" aria-label="Projects">
+    <h2>The skyline</h2>
+    <ul class="skyline">
+      {
+        projects.map((p) => (
+          <li>
+            <strong>{p.name}</strong>
+            <span>{p.line}</span>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mono-label">case studies under construction — opening this week</p>
+  </section>
+
+  <section class="act" aria-label="The arcade">
+    <h2>The arcade</h2>
+    <p>
+      At the edge of the city stands an arcade hall. The machines are
+      real — coded into this site. One of them you cannot beat.
+      That&rsquo;s the point.
+    </p>
+    <p class="mono-label">doors open soon</p>
+  </section>
+
+  <footer class="act">
+    <a class="onward" href="/camino">
+      <span class="mono-label">Continue the journey</span>
+      <span class="onward-name">Act III — The Way</span>
+    </a>
+  </footer>
+</World>
+
+<style>
+  :global([data-world='city']) {
+    background: linear-gradient(to bottom, #0d0b16, var(--c-ink) 55%, #1c1430);
+  }
+
+  h1,
+  h2 {
+    color: var(--c-neon-cyan);
+    text-shadow: 0 0 24px color-mix(in oklab, var(--c-neon-cyan) 35%, transparent);
+  }
+
+  .skyline {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .skyline li {
+    display: grid;
+    gap: 0.2rem;
+    border-left: 2px solid var(--c-neon-magenta);
+    padding-left: 1rem;
+  }
+
+  .skyline strong {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .skyline span {
+    opacity: 0.7;
+    font-style: italic;
+  }
+
+  .onward {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+    padding-block: 1rem;
+  }
+
+  .onward-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+</style>

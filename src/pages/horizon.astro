@@ -1,0 +1,62 @@
+---
+/**
+ * Act IV — The Horizon. Above the clouds: contact, links, the
+ * unwritten next world. Full treatment lands on Day 10.
+ */
+import World from '../layouts/World.astro';
+
+const title = 'The Horizon — Contact Mattis Engelhardt';
+const description =
+  'Act IV: above the clouds. Get in touch with Mattis Engelhardt — the next world is unwritten.';
+---
+
+<World title={title} description={description} world="horizon">
+  <header class="act">
+    <p class="mono-label">Act IV — The Horizon</p>
+    <h1>The next world is unwritten.</h1>
+    <p class="lede">
+      Golden hour above the clouds. No walls up here — just whatever
+      gets built next, and whoever builds it together.
+    </p>
+  </header>
+
+  <section class="act" aria-label="Contact">
+    <h2>Reach him</h2>
+    <p>
+      For collaborations, internships, startups, or a good conversation
+      about agents and long walks.
+    </p>
+    <!-- TODO(Mattis): confirm public email/contact route, GitHub + LinkedIn URLs, CV yes/no -->
+    <p class="mono-label">links land here on day 10</p>
+  </section>
+
+  <footer class="act">
+    <a class="onward" href="/">
+      <span class="mono-label">Return</span>
+      <span class="onward-name">Act 0 — The Summit</span>
+    </a>
+  </footer>
+</World>
+
+<style>
+  :global([data-world='horizon']) {
+    background: linear-gradient(to bottom, #4a5a86, #c97f4e 60%, #ffb45e);
+    color: var(--c-ink);
+  }
+
+  :global([data-world='horizon']) :is(h1, h2) {
+    color: var(--c-ink);
+  }
+
+  .onward {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+    padding-block: 1rem;
+  }
+
+  .onward-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+</style>

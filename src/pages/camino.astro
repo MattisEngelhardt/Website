@@ -1,0 +1,66 @@
+---
+/**
+ * Act III — The Way. The human: the Camino, the photographs, the
+ * mother. Photo treatment + parallax walk land on Day 9.
+ */
+import World from '../layouts/World.astro';
+
+const title = 'The Way — Mattis Engelhardt on the Camino';
+const description =
+  'Act III: the Camino de Santiago, walked with his mother. Real photographs hang in a painted landscape — windows of reality. What the way teaches about how he works.';
+---
+
+<World title={title} description={description} world="camino">
+  <header class="act">
+    <p class="mono-label">Act III — The Way</p>
+    <h1>One step. Then another.</h1>
+    <p class="lede">
+      He walked the Camino de Santiago with his mother. No sprint, no
+      shortcut — just the next waymark, every day, until the sea.
+    </p>
+  </header>
+
+  <section class="act" aria-label="What the way teaches">
+    <h2>What the way teaches</h2>
+    <p>
+      It is the same discipline he builds with: break the impossible
+      distance into steps you can actually take today. Ship the step.
+      Trust the accumulation.
+    </p>
+    <p>
+      Along this path hang his real photographs — the Camino, Montenegro,
+      Bavaria — windows of unpainted reality inside the painted world.
+    </p>
+    <!-- TODO(Mattis): travel photos (Camino, Montenegro, Bavaria) — the peak shots -->
+  </section>
+
+  <footer class="act">
+    <a class="onward" href="/horizon">
+      <span class="mono-label">Continue the journey</span>
+      <span class="onward-name">Act IV — The Horizon</span>
+    </a>
+  </footer>
+</World>
+
+<style>
+  :global([data-world='camino']) {
+    background: linear-gradient(to bottom, #2e2c44, #6e6286 55%, #8a7488);
+  }
+
+  h1,
+  h2 {
+    color: var(--c-canvas);
+  }
+
+  .onward {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+    padding-block: 1rem;
+  }
+
+  .onward-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+</style>
