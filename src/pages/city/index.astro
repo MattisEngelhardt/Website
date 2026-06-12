@@ -1,62 +1,107 @@
 ---
 /**
  * Act II — The City of Agents. What he builds, as a neo-Tokyo pixel
- * night. Scene + project routes land on Days 5–6; arcade on Days 7–8.
+ * night: three towers (the real projects) over a wet avenue, agents in
+ * the streets. The approach is scroll-driven; the real case studies
+ * live in the city records below (real HTML, SEO) and on their own
+ * routes. Scene logic mounts via die Passage (src/worlds/city.ts).
  */
 import World from '../../layouts/World.astro';
 
-const title = 'The City of Agents — What Mattis Engelhardt Builds';
+const title = 'The City of Agents — AI Projects by Mattis Engelhardt';
 const description =
-  'Act II: AI agent projects by Mattis Engelhardt — a multi-agent deck system, VoiceForge, StudyMind and a fully local strategy agent — rendered as a neon pixel city.';
-
-// TODO(content interview): facts per project (what, how, result, stack, screenshots)
-const projects = [
-  {
-    name: 'Multi-Agent Deck System',
-    line: 'the tallest tower — a fleet of agents that builds presentations like a studio, not a tool',
-  },
-  {
-    name: 'Strategy Agent',
-    line: 'a research agent that runs 100% locally — zero cloud, zero cost, full ownership',
-  },
-  {
-    name: 'VoiceForge',
-    line: 'voice, forged into product',
-  },
-  {
-    name: 'StudyMind',
-    line: 'studying, rebuilt around how memory actually works',
-  },
-];
+  'Act II: the AI systems Mattis Engelhardt builds — Porter, a fully local strategy agent; Amadeus, a voice-to-workspace handoff agent; and agentic academic writing pipelines — rendered as a neon pixel city.';
 ---
 
 <World title={title} description={description} world="city">
-  <header class="act">
-    <p class="mono-label">Act II — The City of Agents</p>
-    <h1>The fog tears open. Neon below.</h1>
-    <p class="lede">
-      Every building in this city is something he actually built. The
-      small figures in the streets are his agents — and they are
-      working right now.
-    </p>
-  </header>
+  <div class="approach-track" id="approach-track">
+    <header class="hero" data-scene>
+      <canvas id="city-canvas" aria-hidden="true"></canvas>
 
-  <section class="act" aria-label="Projects">
-    <h2>The skyline</h2>
-    <ul class="skyline">
-      {
-        projects.map((p) => (
-          <li>
-            <strong>{p.name}</strong>
-            <span>{p.line}</span>
-          </li>
-        ))
-      }
-    </ul>
-    <p class="mono-label">case studies under construction — opening this week</p>
+      <div class="frontispiece">
+        <p class="mono-label">Act II — The City of Agents</p>
+        <h1>The fog tears open. Neon below.</h1>
+        <p class="tagline lede">
+          Every lit window is something he built. The figures in the
+          streets are his agents — still working.
+        </p>
+      </div>
+
+      <a class="descend mono-label" href="#records">
+        <span>Walk the streets</span>
+        <span class="descend-line" aria-hidden="true"></span>
+      </a>
+
+      <!-- approach captions — terminal flavor; the true text is in the records -->
+      <p class="caption c1" aria-hidden="true">
+        No fog reaches the streets down here. Only signal does.
+      </p>
+      <p class="caption c2" aria-hidden="true">
+        The towers are projects. The rain is just rain.
+      </p>
+      <p class="caption c3" aria-hidden="true">
+        Agents work the night shift. He reads the morning brief.
+      </p>
+
+      <!-- the signal collapse: glitch-out resolving onto the page of the book -->
+      <div class="glitch-veil" aria-hidden="true"></div>
+      <div class="page-veil" aria-hidden="true"></div>
+    </header>
+  </div>
+
+  <section id="records" class="paper" aria-label="Project case studies">
+    <div class="act">
+      <p class="mono-label">The city records</p>
+      <h2>What he builds</h2>
+      <p>
+        Three towers carry the skyline, and each one is a real system —
+        built, shipped, documented. The files are public. Pull one from
+        the archive:
+      </p>
+      <ol class="records">
+        <li>
+          <a href="/city/porter">
+            <span class="rec-no mono-label">Tower 01</span>
+            <strong>Porter — the strategy agent</strong>
+            <span class="rec-line">
+              research goes in; boardroom-ready briefs, decks and
+              financial models come out. 100% local, zero cloud.
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/city/amadeus">
+            <span class="rec-no mono-label">Tower 02</span>
+            <strong>Amadeus — the handoff agent</strong>
+            <span class="rec-line">
+              he talks; coding agents receive an execution-ready
+              workspace. Voice to context, fully local.
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/city/papers">
+            <span class="rec-no mono-label">Tower 03</span>
+            <strong>The paper mill — agentic academic writing</strong>
+            <span class="rec-line">
+              graded university papers from constraint-driven agent
+              pipelines. One came back a 1.0.
+            </span>
+          </a>
+        </li>
+      </ol>
+      <p class="district-zero">
+        <span class="mono-label">District 0</span> — the city you are
+        standing in. This website is itself one of the buildings: a
+        hand-built world, shaders and all,
+        <a href="https://github.com/MattisEngelhardt/Website"
+          >open source on GitHub</a
+        >.
+      </p>
+    </div>
   </section>
 
-  <section class="act" aria-label="The arcade">
+  <section class="act arcade" aria-label="The arcade">
     <h2>The arcade</h2>
     <p>
       At the edge of the city stands an arcade hall. The machines are
@@ -79,35 +124,143 @@ const projects = [
     background: linear-gradient(to bottom, #0d0b16, var(--c-ink) 55%, #1c1430);
   }
 
-  h1,
-  h2 {
-    color: var(--c-neon-cyan);
-    text-shadow: 0 0 24px color-mix(in oklab, var(--c-neon-cyan) 35%, transparent);
+  /* the scroll runway of the approach — catalogue readers walk straight in */
+  :global([data-mode='full']) .approach-track {
+    height: 340svh;
   }
 
-  .skyline {
+  /* painted fallback night — also the LCP backdrop while the scene streams in */
+  .hero {
+    background:
+      radial-gradient(
+        90% 60% at 50% 78%,
+        color-mix(in oklab, var(--c-neon-magenta) 14%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        70% 45% at 38% 82%,
+        color-mix(in oklab, var(--c-neon-cyan) 12%, transparent),
+        transparent 70%
+      ),
+      linear-gradient(to bottom, #0d0b16 0%, #14121f 55%, #221a33 100%);
+  }
+
+  h1 {
+    color: var(--c-neon-cyan);
+    text-shadow: 0 0 28px color-mix(in oklab, var(--c-neon-cyan) 40%, transparent);
+  }
+
+  /* ── approach captions — the city speaks in terminal ── */
+  .caption {
+    position: absolute;
+    z-index: 1;
+    max-width: 30ch;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-neon-cyan);
+    text-shadow: 0 0 18px color-mix(in oklab, var(--c-neon-cyan) 45%, transparent);
+  }
+
+  .c1 { left: clamp(1.5rem, 8vw, 9rem); top: 24%; }
+  .c2 { right: clamp(1.5rem, 7vw, 8rem); top: 28%; text-align: right; color: var(--c-neon-magenta); text-shadow: 0 0 18px color-mix(in oklab, var(--c-neon-magenta) 45%, transparent); }
+  .c3 { left: clamp(1.5rem, 9vw, 10rem); bottom: 27%; color: var(--c-neon-sun); text-shadow: 0 0 18px color-mix(in oklab, var(--c-neon-sun) 45%, transparent); }
+
+  :global([data-mode='catalog']) .caption,
+  :global([data-mode='catalog']) .glitch-veil,
+  :global([data-mode='catalog']) .page-veil {
+    display: none;
+  }
+
+  /* ── the signal collapse, in two breaths: glitch-out, then the page ── */
+  .glitch-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0 3px,
+        rgb(46 230 214 / 0.05) 3px 4px
+      ),
+      linear-gradient(to bottom, #0d0b16, var(--c-ink));
+  }
+
+  .page-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+    background: var(--c-canvas);
+  }
+
+  /* ── the records: a dossier index pulled from the archive ── */
+  :global(#records) h2 {
+    color: var(--c-ink);
+  }
+
+  .records {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: grid;
-    gap: 1.25rem;
   }
 
-  .skyline li {
+  .records li + li {
+    border-top: 1px solid color-mix(in oklab, var(--c-ink) 18%, transparent);
+  }
+
+  .records a {
     display: grid;
-    gap: 0.2rem;
-    border-left: 2px solid var(--c-neon-magenta);
-    padding-left: 1rem;
+    gap: 0.3rem;
+    padding-block: 1.4rem;
+    text-decoration: none;
+    transition: translate var(--t-flick) var(--ease-lift);
   }
 
-  .skyline strong {
-    font-family: var(--font-mono);
-    font-weight: 500;
-    letter-spacing: 0.04em;
+  .records a:hover {
+    translate: 0.4rem 0;
   }
 
-  .skyline span {
-    opacity: 0.7;
-    font-style: italic;
+  .records strong {
+    font-size: var(--text-lede);
+    font-weight: 520;
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+
+  .records a:hover strong {
+    color: var(--c-vermilion);
+  }
+
+  .rec-line {
+    opacity: 0.75;
+    max-width: var(--measure);
+  }
+
+  .district-zero {
+    margin-block-start: 2.5rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid color-mix(in oklab, var(--c-ink) 22%, transparent);
+    font-size: var(--text-small);
+    line-height: 1.55;
+  }
+
+  /* ── the arcade teaser, back out in the night ── */
+  .arcade h2 {
+    color: var(--c-neon-magenta);
+    text-shadow: 0 0 24px color-mix(in oklab, var(--c-neon-magenta) 35%, transparent);
+  }
+
+  /* ── onward ── */
+  footer {
+    color: var(--c-canvas);
   }
 
   .onward {

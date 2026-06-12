@@ -1,0 +1,135 @@
+---
+/**
+ * Record.astro — a city record: the dossier frame every case study
+ * (/city/<project>) hangs in. A dark letterhead in the tower's neon,
+ * then the file itself on paper — you click a billboard in the night
+ * and the archive hands you a clean printed document. Content slots in
+ * as .act sections (real HTML, SEO; reveals via the shared controller).
+ */
+import World from './World.astro';
+
+export interface Props {
+  title: string;
+  description: string;
+  tower: string;
+  name: string;
+  lede: string;
+  accent: 'cyan' | 'magenta' | 'sun';
+  github?: string;
+  next?: { href: string; label: string };
+}
+
+const { title, description, tower, name, lede, accent, github, next } =
+  Astro.props;
+---
+
+<World title={title} description={description} world="city">
+  <header class="record-head act" data-accent={accent}>
+    <p class="mono-label crumb"><a href="/city">The City of Agents</a> / {tower}</p>
+    <h1>{name}</h1>
+    <p class="lede">{lede}</p>
+    {
+      github && (
+        <a class="mono-label repo" href={github}>
+          source on GitHub ↗
+        </a>
+      )
+    }
+  </header>
+
+  <article class="paper record-body">
+    <slot />
+
+    <footer class="act record-nav">
+      <a href="/city">&larr; back to the city</a>
+      {next && <a href={next.href}>{next.label} &rarr;</a>}
+    </footer>
+  </article>
+</World>
+
+<style>
+  :global([data-world='city']) {
+    background: linear-gradient(to bottom, #0d0b16, var(--c-ink) 55%, #1c1430);
+  }
+
+  .record-head {
+    padding-block: clamp(7rem, 18vh, 12rem) clamp(3rem, 8vh, 5rem);
+  }
+
+  .record-head[data-accent='sun'] { --accent: var(--c-neon-sun); }
+  .record-head[data-accent='cyan'] { --accent: var(--c-neon-cyan); }
+  .record-head[data-accent='magenta'] { --accent: var(--c-neon-magenta); }
+
+  .record-head h1 {
+    font-size: var(--text-title);
+    color: var(--accent);
+    text-shadow: 0 0 30px color-mix(in oklab, var(--accent) 40%, transparent);
+    margin-block: 0.35em 0.4em;
+  }
+
+  .crumb a {
+    text-decoration: none;
+  }
+
+  .crumb a:hover {
+    text-decoration: underline;
+  }
+
+  .repo {
+    display: inline-block;
+    margin-block-start: 1.5rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 55%, transparent);
+    color: var(--accent);
+    text-decoration: none;
+    transition: background var(--t-flick) var(--ease-lift);
+  }
+
+  .repo:hover {
+    background: color-mix(in oklab, var(--accent) 12%, transparent);
+  }
+
+  /* ── the file itself, on paper ── */
+  .record-body :global(h2) {
+    color: var(--c-ink);
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem);
+  }
+
+  .record-body :global(ol),
+  .record-body :global(ul) {
+    max-width: var(--measure);
+    padding-inline-start: 1.2rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .record-body :global(.stack) {
+    letter-spacing: 0.06em;
+    text-transform: none;
+    line-height: 1.9;
+  }
+
+  .record-body :global(.aside) {
+    border-left: 2px solid var(--c-vermilion);
+    padding-left: 1rem;
+    font-style: italic;
+    opacity: 0.85;
+  }
+
+  .record-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .record-nav a {
+    text-decoration: none;
+  }
+
+  .record-nav a:hover {
+    text-decoration: underline;
+  }
+</style>

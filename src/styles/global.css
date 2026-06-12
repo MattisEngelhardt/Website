@@ -326,6 +326,11 @@ a:hover {
   font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 1;
 }
 
+/* within one world (city → record page) the plate stays quiet */
+.passage[data-same='true'] .passage-plate {
+  display: none;
+}
+
 /* ── destination palettes (only mixed from the quintet) ── */
 .passage[data-to='summit'] .s1 { background: var(--c-deep); }
 .passage[data-to='summit'] .s2 { background: var(--c-babyblue); }

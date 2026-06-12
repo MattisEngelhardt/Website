@@ -1,0 +1,77 @@
+---
+/**
+ * City record — Tower 03: agentic academic writing pipelines.
+ * Facts from github.com/MattisEngelhardt/Seminar-Papers.
+ */
+import Record from '../../layouts/Record.astro';
+
+const title = 'The Paper Mill — Agentic Academic Writing Pipelines | Mattis Engelhardt';
+const description =
+  'How Mattis Engelhardt builds constraint-driven AI agent pipelines that write graded university papers under strict German methodology — including a seminar paper that earned a 1.0.';
+---
+
+<Record
+  title={title}
+  description={description}
+  tower="Tower 03"
+  name="The Paper Mill"
+  lede="Two graded papers. One came back a 1.0. The craft is the pipeline, not the prompt."
+  accent="magenta"
+  github="https://github.com/MattisEngelhardt/Seminar-Papers"
+  next={{ href: '/city/porter', label: 'Tower 01 — Porter' }}
+>
+  <section class="act">
+    <h2>The brief</h2>
+    <p>
+      &ldquo;ChatGPT, write my essay&rdquo; produces something a grader
+      smells in the first paragraph. This is the opposite: agent
+      pipelines engineered around strict German academic methodology,
+      where every constraint — word budgets, citation placement,
+      chapter structure, formatting law — is encoded into the system
+      before a single sentence is generated. The agents do not get
+      asked nicely. They get constrained.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>File one — AI in startups</h2>
+    <p>
+      An end-to-end framework that produced a ten-page research exposé
+      following the Döring methodology. A CLAUDE.md control document
+      acts as the constitution: anti-hallucination rules, formatting
+      requirements, chapter-by-chapter chain-of-thought prompts. Python
+      scripts manipulate the Word document&rsquo;s OOXML directly —
+      table of contents, text insertion, dual page-numbering. Source
+      texts stay git-ignored for copyright; the public repo carries
+      structured metadata skeletons in their place.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>File two — AI in e-commerce</h2>
+    <p>
+      A seminar paper built through an eight-step prompt chain with
+      funnel constraints — each section gets a word budget and citation
+      placement rules — and a closed-loop QA audit that compares the
+      output against the target specification before final compilation.
+    </p>
+    <p class="aside">Grade: 1.0.</p>
+  </section>
+
+  <section class="act">
+    <h2>The lesson</h2>
+    <p>
+      Agents do not become reliable by being asked nicely. They become
+      reliable by constraint design — the same lesson that runs through
+      every tower in this city.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>Stack</h2>
+    <p class="stack mono-label">
+      Claude &middot; Python &middot; OOXML automation &middot;
+      prompt-chain orchestration &middot; closed-loop QA
+    </p>
+  </section>
+</Record>

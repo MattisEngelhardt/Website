@@ -47,6 +47,7 @@ const WORLDS: Record<WorldName, { act: string; name: string; index: number }> = 
 const CONTROLLERS: Partial<Record<WorldName, () => Promise<WorldModule>>> = {
   summit: () => import('../worlds/summit'),
   sea: () => import('../worlds/sea'),
+  city: () => import('../worlds/city'),
 };
 const defaultController = (): Promise<WorldModule> => import('../worlds/common');
 
@@ -121,6 +122,8 @@ function closeVeil(to: WorldName, from: WorldName): Promise<void> {
 
   el.dataset.to = to;
   el.dataset.dir = WORLDS[to].index < WORLDS[from].index ? 'back' : 'forward';
+  // moving within one world (city → record page): quick wipe, no chapter plate
+  el.dataset.same = String(to === from);
   const act = el.querySelector('.passage-act');
   const name = el.querySelector('.passage-name');
   if (act) act.textContent = WORLDS[to].act;

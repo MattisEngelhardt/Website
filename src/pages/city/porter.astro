@@ -1,0 +1,81 @@
+---
+/**
+ * City record — Tower 01: Porter, the local strategy agent.
+ * Facts from github.com/MattisEngelhardt/Porter-Local-Strategy-Agent.
+ */
+import Record from '../../layouts/Record.astro';
+
+const title = 'Porter — A Fully Local AI Strategy Agent | Mattis Engelhardt';
+const description =
+  'Porter is a local AI research and strategy agent by Mattis Engelhardt: research tasks go in, professional PDF briefs, PowerPoint decks and Excel models come out — 100% on-device, no cloud, no API costs.';
+---
+
+<Record
+  title={title}
+  description={description}
+  tower="Tower 01"
+  name="Porter"
+  lede="A research department that fits on one laptop — and sends no data anywhere."
+  accent="sun"
+  github="https://github.com/MattisEngelhardt/Porter-Local-Strategy-Agent"
+  next={{ href: '/city/amadeus', label: 'Tower 02 — Amadeus' }}
+>
+  <section class="act">
+    <h2>The brief</h2>
+    <p>
+      Porter turns research-heavy questions into boardroom-ready
+      deliverables: PDF briefs, PowerPoint decks, formula-driven Excel
+      models, Markdown briefings. The unusual part is where it runs —
+      entirely on the machine in front of you. Local language models,
+      local search, local memory. No API key, no cloud bill, no data
+      leaving the room.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>How it runs</h2>
+    <p>
+      One task moves through a six-phase pipeline, and a single effort
+      dial (<em>low / high / ultra</em>) decides how hard the machine
+      thinks — how many research workers run in parallel, how many
+      rounds they take, whether a critique pass revises the output
+      before it ships.
+    </p>
+    <ol>
+      <li>Intent parsing — the task is understood, effort auto-detected</li>
+      <li>Clarification — one to three rounds of targeted questions</li>
+      <li>Multi-agent research — parallel workers fetch and rank findings via SearXNG</li>
+      <li>Synthesis — findings consolidate into structured analysis</li>
+      <li>Output generation — briefs, decks and workbooks render</li>
+      <li>Critique &amp; revision — the work gets reviewed before it leaves</li>
+    </ol>
+  </section>
+
+  <section class="act">
+    <h2>Details that matter</h2>
+    <p>
+      Porter remembers. Every analysis is embedded into a local vector
+      store — run it on the same company twice and it opens with what
+      changed since last time. Voice input is one shortcut away,
+      transcribed on-device. And in document mode it reads internal
+      PDFs and spreadsheets without touching the web, with every figure
+      in the synthesis traced back to its source — built for the
+      CEO-office use case where hallucination is not a quirk but a
+      dealbreaker.
+    </p>
+    <p class="aside">
+      Design stance: fail open. A missing dependency prints its exact
+      fix and the other deliverables still ship. Scaling effort, swapping
+      models or backends is configuration, never code.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>Stack</h2>
+    <p class="stack mono-label">
+      Python &middot; Ollama / LM Studio &middot; SearXNG &middot;
+      ChromaDB &middot; WeasyPrint &middot; python-pptx &middot;
+      openpyxl &middot; faster-whisper
+    </p>
+  </section>
+</Record>

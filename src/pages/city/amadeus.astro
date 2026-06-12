@@ -1,0 +1,76 @@
+---
+/**
+ * City record — Tower 02: Amadeus, the voice-to-workspace handoff agent.
+ * Facts from github.com/MattisEngelhardt/Amadeus-Local-AI-Handoff-Agent.
+ */
+import Record from '../../layouts/Record.astro';
+
+const title = 'Amadeus — Voice to Execution-Ready AI Workspaces | Mattis Engelhardt';
+const description =
+  'Amadeus is a local AI handoff agent by Mattis Engelhardt: voice notes, messages and files become structured, execution-ready workspaces that coding agents like Claude Code can pick up and run.';
+---
+
+<Record
+  title={title}
+  description={description}
+  tower="Tower 02"
+  name="Amadeus"
+  lede="He talks. The coding agents get a workspace."
+  accent="cyan"
+  github="https://github.com/MattisEngelhardt/Amadeus-Local-AI-Handoff-Agent"
+  next={{ href: '/city/papers', label: 'Tower 03 — The Paper Mill' }}
+>
+  <section class="act">
+    <h2>The brief</h2>
+    <p>
+      The bottleneck with coding agents is not the coding — it is the
+      context. Amadeus attacks exactly that: raw input (voice notes,
+      Telegram messages, files, links, half-formed project sketches)
+      goes in, and what comes out is an execution-ready workspace that
+      a downstream agent — Claude Code, Codex — can pick up and run
+      with. Amadeus writes no production code itself. It makes sure
+      whoever does has everything.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>How it runs</h2>
+    <p>
+      Ten steps, fully local: capture preserves the original material
+      and its metadata; audio is transcribed on-device; a master prompt
+      is drafted; a gap analysis asks the blocking questions before
+      anything proceeds; everything converts to agent-readable
+      Markdown; a readiness gate validates the package — and only then
+      is the workspace built and handed off as files, not as live
+      agent control.
+    </p>
+    <p>
+      A finished workspace reads like a project briefing written by a
+      careful chief of staff: CLAUDE.md, AGENTS.md, a master prompt,
+      requirements, decision records, next steps, a source map — plus
+      the original sources, indexed.
+    </p>
+    <p class="aside">
+      The idea has a name: voice-to-context. Production code is cheap
+      now; well-prepared intent is not.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>Honest status</h2>
+    <p>
+      Verified working end-to-end for text input and workspace
+      generation, all on local models. Telegram ingestion and
+      persistent state are still in progress — this record will be
+      updated when they land.
+    </p>
+  </section>
+
+  <section class="act">
+    <h2>Stack</h2>
+    <p class="stack mono-label">
+      Python &middot; Ollama (Gemma) &middot; faster-whisper large-v3
+      &middot; Telegram &middot; Markdown handoff
+    </p>
+  </section>
+</Record>
