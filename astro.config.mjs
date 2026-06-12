@@ -6,7 +6,7 @@ import sitemap from '@astrojs/sitemap';
 // Until then this is the canonical target; swap before launch if needed.
 export default defineConfig({
   site: 'https://mattisengelhardt.com',
-  integrations: [sitemap()],
+  integrations: [sitemap({ filter: (page) => !page.includes('/dev/') })],
   prefetch: true,
   // dev-only overlay; it 504s under vite dep re-optimization and
   // pollutes automated runtime verification — we don't use it

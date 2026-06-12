@@ -1,0 +1,110 @@
+---
+// Dev-only proof route: loads the Blender-baked, gltf-transform-optimised
+// GLB in the real chassis (WebGPURenderer + GLTFLoader + meshopt + WebP).
+// Excluded from the sitemap; noindex. Not linked from anywhere.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="data:," />
+    <title>dev/asset — pipeline proof</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #11141f;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #status {
+        position: fixed;
+        left: 12px;
+        bottom: 10px;
+        color: #cfd8ea;
+        font: 12px/1.4 monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div id="status">loading…</div>
+    <script>
+      import * as THREE from 'three/webgpu';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+      const canvas = document.getElementById('stage') as HTMLCanvasElement;
+      const status = document.getElementById('status')!;
+
+      const renderer = new THREE.WebGPURenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x11141f);
+      const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 50);
+      camera.position.set(0, 1.1, 4.2);
+      camera.lookAt(0, 0, 0);
+
+      // golden-hour key + cool fill — the quintet, nothing neutral
+      const key = new THREE.DirectionalLight(0xffb45e, 2.6);
+      key.position.set(3.5, 2.2, 2.5);
+      scene.add(key);
+      const fill = new THREE.HemisphereLight(0x7fa8d4, 0x16243c, 0.55);
+      scene.add(fill);
+
+      const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+
+      const state: { ready: boolean; tris: number; error: string | null } = {
+        ready: false,
+        tris: 0,
+        error: null,
+      };
+      (window as any).__assetState = state;
+
+      let rock: THREE.Object3D | null = null;
+      loader.load(
+        '/assets/proof/rock.glb',
+        (gltf) => {
+          rock = gltf.scene;
+          scene.add(rock);
+          rock.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) {
+              const idx = mesh.geometry.index;
+              state.tris += (idx ? idx.count : mesh.geometry.attributes.position.count) / 3;
+            }
+          });
+          state.ready = true;
+          status.textContent = `live — ${state.tris} tris, meshopt+webp`;
+          document.body.classList.add('is-live');
+        },
+        undefined,
+        (err) => {
+          state.error = String(err);
+          status.textContent = `FAIL ${state.error}`;
+        },
+      );
+
+      renderer.setAnimationLoop(() => {
+        if (rock) rock.rotation.y += 0.004; // turntable
+        renderer.render(scene, camera);
+      });
+
+      addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+    </script>
+  </body>
+</html>

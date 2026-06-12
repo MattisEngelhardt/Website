@@ -2,6 +2,8 @@
 
 > Finaler Plan, gemeinsam entwickelt am 10.06.2026. Dieses Dokument ist das Deliverable der Planungs-Session — implementiert wird erst auf Mattis' Startsignal.
 
+> ⚠️ **Update 12.06.2026 — Krisengespräch:** Das Konzept unten bleibt gültig, die **Umsetzungs-Doktrin wurde fundamental verschärft**: echte Blender-Assets statt prozeduralem Code-Malen, Gigapixel-Threshold-Einstieg „durch den Rahmen", Welt-in-Welt-Navigation (die Wanderer-Welt trägt alle anderen Welten), IFFT-Ozean, Camino als Satelliten-3D-Flug. **Wortlaut-Kritik + Doktrin + Entscheidungen: oberste Sektion in `brain.md`** (Pflichtlektüre vor jeder Arbeit). Die 12-Tage-Roadmap unten ist durch die Krisen-Roadmap (brain.md / genehmigter Plan) ersetzt.
+
 ## Kontext
 
 12 Tage freies Fable 5 (bis 22.06.2026). Ziel: eine Awwwards-Level-Website über Mattis — keine Galerie, keine Portfolio-Sektionen, sondern **eine eigene Welt**: Action, Kunst, lebendig, mit eingebauten Mini-Games. Harte Constraints: fertig bis 22.06., danach null laufende Kosten, komplett kostenlos gehostet, über Google auf seinen Namen auffindbar. Site-Inhalt Englisch, Zusammenarbeit Deutsch. Mattis liefert Inhalte und Richtung; alle UI/UX/Motion/3D/Shader-Entscheidungen liegen bei Claude als Handwerk.
@@ -73,21 +75,22 @@ Navigation: primär eine scrollgetriebene Reise (GSAP ScrollTrigger + Lenis), se
 - **SEO:** schema.org `Person` + `CreativeWork` JSON-LD, Sitemap, Meta/OG sauber, pro Welt ein build-time generiertes OG-Image, voller Text in jedem HTML (Katalog-Inhalt wird server-seitig gerendert, nicht nachgeladen), Google Search Console Submission am Launch-Tag. Suchziel: "Mattis Engelhardt".
 - **Null laufende Kosten:** kein Backend, keine API, kein Key, kein Agent. Hinweis: Awwwards-*Einreichung* kostet eine Gebühr — optional, seine Entscheidung; die Qualitätslatte gilt unabhängig davon.
 
-## 12-Tage-Roadmap (10.06. → 22.06.)
+## Krisen-Roadmap (ersetzt am 12.06. die ursprüngliche; Tag 3–12)
 
 | Tag | Werk |
 |---|---|
-| 1 | Content-Interview (Bio-Fakten & was öffentlich sein darf — bewusste Kuration; berufliche Stationen klären; Fotos sichten & auswählen), Domain-Entscheidung, Art-Direction-Lock (Fonts, Paletten-Tokens, Motion-Tokens), Repo + Astro-Skeleton + Deploy-Pipeline (ab Tag 1 live auf Preview-URL) |
-| 2–3 | **Akt 0 zuerst** (das Meisterstück, härteste Technik): Nebelmeer-Shader, Tageszeit-Himmel, Maus-Wind, Pinselstrich↔Real-Morph; dazu Journey-/Scroll-System & Welt-Übergangs-Framework |
-| 4 | Akt I — Das Meer (Wellen, Schiff, Bio-Inszenierung) |
-| 5–6 | Akt II — Stadt (Pixel-Welt, Agenten-Figuren, Projekt-Routen mit Case-Study-Texten) |
-| 7–8 | Arcade: Tic-Tac-Toe-Minimax + Swarm, poliert; Snake nur bei Restzeit |
-| 9 | Akt III — Der Weg (Foto-Treatment, Parallax-Wanderung) |
-| 10 | Akt IV — Horizont + Wanderpass/Stempel + verborgene Welt + Terminal/Easter Eggs |
-| 11 | Polish: Motion-Feinschliff, Sound, Performance-Budget, Katalog-Modus, Mobile, Cross-Browser, Reduced-Motion |
-| 12 | Launch: OG-Images, Sitemap, Search Console, finaler Deploy, README, optional Awwwards-Submission |
+| 3 (12.06.) | Doktrin festhalten (brain.md + Memory), Toolchain: uv + Blender MCP, Pipeline-Proof (Blender→GLB→Draco/KTX2→three.js), Gigapixel-Scan + Tile-Pyramide, Asset-Sourcing (Schiff, Klippen, HDRIs), IFFT-Ocean-Spike; HANDOFF an Akt-2-Fable |
+| 4–5 | **Akt 0 Rebuild**: Threshold-Auftakt mit Tile-LOD-Zoom („durch den Rahmen"), Blender-Set (Fels, Wanderer-Figur, Cloud-Cards), Kamerapfad mit Stationen, Volumetrik; Side-by-side-Abnahme gegen das Gemälde |
+| 6–7 | **Akt I Rebuild**: IFFT-Ozean (JONSWAP) + ehrliche Buoyancy + Schiffs-GLB + Scroll-Sonnenuntergang; Side-by-side gegen Cap Martin |
+| 8 | **Welt-in-Welt-Nebelraum**: Drift-Navigation, lebende Gemälde-Rahmen, Threshold-Flüge site-weit; Integration Akt II |
+| 9 | **Camino-Satellitenflug** (BlenderGIS: SRTM + Sentinel-2, GPX-Kamerapfad) + Medien-Integration (Mattis' Fotos/Videos) |
+| 10 | Arcade-Pflichtspiele (Tic-Tac-Toe-Minimax, Swarm) + Akt IV Horizont + Wanderpass |
+| 11 | Polish: Motion, Sound, Performance-Budget, Katalog-Modus, Mobile, Cross-Browser, Reduced-Motion |
+| 12 (21./22.06.) | Launch: OG-Images, Sitemap, Search Console, finaler Deploy, README, optional Awwwards-Submission |
 
-**Scope-Ventile** (Streichreihenfolge bei Zeitnot): Snake → tägliches Detail → Akt-III-Set-Piece vereinfachen (statisches Parallax) → Sound → Pinselstrich↔Real-Morph wird einfacher Shader-Crossfade.
+**Priorität (Mattis, 12.06.): Tiefe zuerst** — Akt 0 + Akt I auf Weltklasse, bevor die Breite kommt.
+
+**Scope-Ventile** (Streichreihenfolge bei Zeitnot): Welt-in-Welt-Raum → einfache Nebel-Portale; Rodin-Figur → Relief der Originalfigur; Snake/tägliches Detail entfallen; Sound minimal.
 
 ## Was Mattis liefert (Tag 1)
 

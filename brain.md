@@ -9,7 +9,61 @@
 2. **Während der Session:** neue Findings sofort hier eintragen
 3. **Session-Ende (großer Sessions):** `HANDOFF.md` aktualisieren — perfekter Handoff-Prompt an den nächsten Fable, beginnt mit `@PLAN.md @brain.md`; knapp, verweist auf brain.md statt zu duplizieren
 
-## Status (Stand: 11.06.2026 Abend, Tag 2 von 12 — Tag-4-Werk vorgezogen)
+## ⚠️ DAS KRISENGESPRÄCH 12.06.2026 — DIE QUALITÄTSDOKTRIN (überschreibt alles Bisherige; JEDER Fable liest das zuerst)
+
+Mattis hat Akt 0 + Akt I im Browser abgenommen und für **weit unter dem Anspruch** erklärt. Der Kern von PLAN.md (Konzept, Welten, Geschichte) bleibt bestätigt — **die Umsetzungsweise wird fundamental geändert**. Voller genehmigter Plan: `C:\Users\engel\.claude\plans\ok-krisengespr-ch-das-was-bubbly-ullman.md`
+
+### Die Kritik im Wortlaut (12.06.2026, exakt festgehalten)
+
+> „Das was ich hier sehe als erste Landingpage ist keinesfalls die Qualität, die wir nicht nur anstreben, sondern auch **erreichen müssen**. Es ist alles extrem basic und sehr wenig kreativ — wie eine einfache Landingpage mit mehreren Seiten, die einfach nur reinen Text auflisten. Das Boot ist viel zu einfach, der Wanderer ist viel zu einfach."
+
+> „Ich will ein **extremes High-Class-3D-Experience**, ultra-realistisch und wirklich ereignisreich. Wirkliche Motion. Wirklich ultra-realistisch **im Caspar-David-Friedrich-Gemälde bei höchster Auflösung SEIN** — nicht in einem billigen Klon auf der Oberfläche entlangstreichen. Ich will wirklich im **lebendigen ‚Ship at Sunset off Cap Martin' von Aivazovsky** sein: das Meer soll extrem realistisch und **physisch korrekt strömen**, das Schiff soll **darauf schwimmen**, die Sonne soll **langsam setten** — und das alles, wenn man scrollt."
+
+> „Wo ist die Kreativität? (Referenz: phantom.land — dreidimensionale Galerie als Startseite.) Für den Start wäre Wanderer over the Sea of Fog schon sehr stark — aber **komplett realistisch, in höchster Auflösung, man muss IM Gemälde sein**, die Kameraführung läuft weiter geradeaus, und dann kann man wie in einer Galerie genauer auf die einzelnen Parts."
+
+> „**Auf keinen Fall** den Wanderer und das Boot **selber basic coden** — sondern **mit den richtigen Tools**: ein ultra-high-quality, extreme-high-resolution **Blender-Projekt**, wo man sich selber drin befindet und alles lebendig abläuft. Ich glaube, du hast noch nicht verstanden, was es wirklich bedeutet, eine Website in **Awwwards-Qualität** zu bauen."
+
+> „Final will ich, dass der Nutzer sich **komplett realistisch in Friedrichs und Aivazovskys Bild befindet**, sich in **meinen Bildern und Videos** befindet (oder diese perfekt und elegant eingebunden sind) und **extrem realistisch Teile des Jakobswegs** nach Santiago de Compostela **läuft**."
+
+### Die Diagnose (was falsch lief)
+
+Alles war **prozedural aus Code gemalt**: Wanderer = Canvas-Alphamaske auf einer Plane, Schiff = 2D-Canvas-Sprite, Nebel = 8 Noise-Layer, Fels = Silhouette. **Kein einziges geladenes 3D-Asset, keine echte Tiefe, keine Kamerafahrt DURCH einen Raum**, darunter Text-„Buchseiten". Der Kern-Irrtum: „alles in Code, kein Asset" als handwerkliches Statement zu behandeln. **Awwwards-Niveau entsteht aus Production-Assets** (echte Geometrie, Texturen, gebackenes Licht, choreographierte Kamera) aus einem DCC-Tool — **Shader sind das Finish, nicht der Inhalt.**
+
+### Die Doktrin (gilt für JEDE Szene, JEDEN Fable, ab sofort)
+
+1. **Echte 3D-Sets aus Blender** (5.1 ist installiert: `C:\Program Files\Blender Foundation\Blender 5.1`) — PolyHaven (CC0), Sketchfab, Hyper3D Rodin (Free-Tier), Sculpts; Licht in Cycles gebacken. Maschine schafft das: RTX 4060 Laptop, i9-13980HX, 32 GB RAM
+2. **Kinoreife Kamerapfade**, in Blender choreographiert, per Scroll gescrubbt — Kamera bewegt sich DURCH den Raum
+3. **Physikalisch plausible Simulation**: IFFT-Ozean (JONSWAP; Referenz MIT: Spiri0/Threejs-WebGPU-IFFT-Ocean), Raymarch-Volumetrik, ehrliche Multi-Punkt-Buoyancy
+4. **Painterly-Grade (Kuwahara) bleibt als Finish** — jetzt auf echter Tiefe
+5. **Verifikation = Side-by-side mit dem Originalgemälde + ehrliche FPS auf echter GPU** (headed, nicht headless) — „läuft ohne Errors" reicht NICHT mehr
+6. **Eleganz vor Effekt-Spam, kein Lag** (60 fps Mittelklasse bleibt Budget)
+7. **Asset-Pipeline**: Blender → GLB → gltf-transform (meshopt/Draco + KTX2: UASTC für Normals/Hero, ETC1S sekundär) → three.js r184; je Welt ≤ 15 MB progressiv, Initial-JS ≤ 150 KB
+
+### Entscheidungen von Mattis (12.06.)
+
+1. **Einstieg „Durch den Rahmen"**: Museum-Auftakt, Gemälde mit **IIIF-artigem Gigapixel-Tile-Zoom** (Kunsthalle-Scans ~60k px existieren), man tritt durch die Leinwand ins echte 3D-Set
+2. **Welt-in-Welt**: die Wanderer-Welt ist die HAUPTWELT, alle anderen Welten leben IN ihr (lebende Gemälde-Rahmen im Nebelmeer, Drift-Navigation mit Trägheit, Threshold-Flug durch Rahmen = Site-Signatur). Nicht bloß Klick/Scroll — phantom.land als Kreativitäts-Messlatte, nicht als Kopie
+3. **Tiefe zuerst**: Akt 0 + Akt I auf Weltklasse (Tag 4–7), dann Rest
+4. **Strikt kostenlos**: kein World Labs Marble; Blender + CC0 + Free-Tier
+5. **Camino = Satelliten-3D-Flug** über die echte Route nach Santiago (BlenderGIS: SRTM-DEM + Sentinel-2/Esri), GPX-Kamerapfad, seine Fotos als Stationen — kein Boden-Detail
+
+### Für Akt II (Parallel-Fable) heißt das konkret
+
+Gleiche Doktrin in Pixel-Übersetzung: echte Stadt-Geometrie aus Blender (Blockout + Bake) oder hochwertige gezeichnete Parallax-Ebenen — **keine primitiven Code-Rechtecke**; Kamerafahrt DURCH die Stadt statt statischer Ansicht; Side-by-side gegen Referenz-Artworks (Cyberpunk/Neo-Tokyo) als Abnahme. Koordination: nur EINE Blender-MCP-Instanz gleichzeitig (Socket-Konflikt) — Absprache via HANDOFF.md.
+
+## Tag 3 (12.06.) — Krisen-Umsetzung: Toolchain steht, Pipeline bewiesen
+
+- ✅ Krise dokumentiert: brain.md (oben), PLAN.md (Krisen-Verweis + neue Roadmap), Memory; genehmigter Plan: `C:\Users\engel\.claude\plans\ok-krisengespr-ch-das-was-bubbly-ullman.md`
+- ✅ **uv 0.11.21** via winget (`--source winget` nötig, msstore-TLS kaputt); uvx: `C:\Users\engel\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\uvx.exe`
+- ✅ **blender-mcp als Projekt-MCP** in `.mcp.json` (committed; Tools laden ab NÄCHSTER Session). Addon installiert+aktiviert in Blender 5.1 (`tools/blender/addon.py`); **Socket-Server braucht Blender-GUI**: N-Panel „BlenderMCP" → Connect; **nur EINE Instanz gleichzeitig** (Fable-Absprache via HANDOFF!)
+- ✅ **Pipeline-Proof PASS** (`node scripts/verify-asset.mjs`): `scripts/blender/pipeline_proof.py` headless (Cycles-**OPTIX-GPU**-Bake funktioniert!) → `assets-src/proof/rock_raw.glb` 1,12 MB → `npx gltf-transform optimize --compress meshopt --texture-compress webp` → `public/assets/proof/rock.glb` **73 KB** → `/dev/asset` (WebGPU, GLTFLoader+MeshoptDecoder via `three/addons/...`) → Screenshot grün. Blender headless: `& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" --background --factory-startup --python <script>`
+- ✅ **Tile-Pyramide** für den Threshold-Zoom: `node scripts/make-tiles.mjs <img> public/assets/paintings wanderer` (sharp, DeepZoom 512er/2px-Overlap; Output-Name MUSS ohne Endung übergeben werden — Script regelt das via `.dz`) → `wanderer.dzi` + `wanderer_files/` (54 Tiles, 1,2 MB) aus Commons-Scan 2327×2980 als **Baseline**. ⏳ **Gigapixel-Jagd Tag 4**: Google Arts & Culture (dezoomify-rs), Kunsthalle `online-sammlung.hamburger-kunsthalle.de` (Kunsthalle hat ~60k-px-Scans, „ZOOM IN"); Tiles-Rerun ist ein Einzeiler
+- ✅ **Sourcing** (alles in `assets-src/`, gitignored, nur lokal/OneDrive): Wanderer 2327×2980 (Commons), **Aivazovsky Cap Martin 3882×2623** (Sotheby's-S3 direkt, post-restoration: `sothebys-brightspot.s3.amazonaws.com/media-desk/a0/cc/70e0a1204dbb9eeb5f958a720b6a/207l19112-b5q8t-post-restoration.jpg`), PolyHaven 2k-Sets `cliff_side` + `rock_face` (diff/nor/rough/disp) + 4k-HDRIs `qwantani_dawn_puresky` (Akt 0) / `qwantani_sunset_puresky` (Akt I). PolyHaven-REST: `api.polyhaven.com/assets?t=…` + `api.polyhaven.com/files/<id>`
+- **Entscheidung Schiff**: die Brigg wird **in Blender selbst modelliert** (Sketchfab-API braucht Account/Key; Gegenlicht-Silhouette im Gemälde → Eigenbau nach Referenz ist exakter und CC0-sauber). Alternative: Hyper3D Rodin via MCP (Free-Tier)
+- ⏳ **KTX2 offen**: toktx (KhronosGroup KTX-Software) nicht installiert — Proof nutzt WebP (ok bis VRAM drückt); vor Akt-0-Build entscheiden
+- Neue Dateien: `scripts/blender/pipeline_proof.py`, `scripts/make-tiles.mjs`, `scripts/verify-asset.mjs`, `src/pages/dev/asset.astro` (noindex, sitemap-gefiltert in astro.config), `.mcp.json`, `tools/blender/addon.py`
+
+## Status (Stand: 11.06.2026 Abend, Tag 2 von 12 — Tag-4-Werk vorgezogen; ⚠️ 12.06. KRISENGESPRÄCH: Akt 0 + I werden nach neuer Doktrin neu gebaut, s. oben)
 
 - ✅ Tag 1 komplett (Skeleton, Art-Direction, 5 Routen, Hero erster Pass)
 - ✅ **Akt-0-Meisterstück (Tag 2–3-Kern) gebaut UND im Browser verifiziert** (Playwright + System-Chrome, echtes WebGPU, 0 Console-Errors, `VERDICT: PASS`):
@@ -35,7 +89,8 @@
   - **Cursor = Lichtpinsel**: Pointer-Ray auf Wasserebene projiziert, Spur in 256²-Canvas (lighten/fade), als CanvasTexture (flipY=false!) in Welt-XZ gesampelt — Licht bleibt liegen, wo die Hand war
   - **Voyage-Scroll** (320svh): Schiff segelt aus dem fernen Licht heran, Dämmerung vertieft sich, Kamera sinkt; 3 Log-Captions (aria-hidden Flavor) tauchen in Scroll-Fenstern auf; **Goldblende in zwei Atemzügen** (gold-veil → page-veil/Canvas) löst auf die Buchseite; echte Bio im „Ship's Log" (paper, SEO)
 - ⏳ Noch offen aus Tag 2–3: Sound-Layer (kann auch in Tag-11-Polish)
-- ⏳ GitHub-Repo + Deploy (braucht `gh auth login` von Mattis); **FPS-Check auf echtem Gerät** (Kuwahara = ~100 Taps/Pixel; Headless kann keine ehrliche FPS messen — Mattis soll einmal scrollen/wedeln und auf Ruckeln achten)
+- ✅ GitHub-Repo live: `MattisEngelhardt/Website`, alle Commits gepusht (GCM-Auth, kein gh nötig)
+- ⏳ Cloudflare-Pages-Verbindung (Mattis im Dashboard) + **FPS-Check auf echtem Gerät** (Kuwahara = ~100 Taps/Pixel; Headless kann keine ehrliche FPS messen — Mattis soll auf `/` und `/sea` scrollen/wedeln und auf Ruckeln achten)
 - Deadline: **22.06.2026** (Roadmap in PLAN.md; Tag 4 = Akt I Meer)
 
 ## Tech-Entscheidungen (locked)
@@ -70,7 +125,7 @@
 ## Umgebungs-Gotchas (Windows, wichtig!)
 
 - **npm braucht `$env:NODE_OPTIONS="--use-system-ca"`** — sonst `UNABLE_TO_VERIFY_LEAF_SIGNATURE` (lokaler Proxy/AV bricht TLS auf). Gilt für JEDEN npm-Befehl!
-- `gh` CLI ist NICHT eingeloggt → GitHub-Push braucht Mattis (`gh auth login`)
+- **Push funktioniert**: Remote `https://github.com/MattisEngelhardt/Website.git`, Auth via Git Credential Manager (gh CLI bleibt uneingeloggt — egal). Nach jedem Commit auf main pushen!
 - Pfad enthält Leerzeichen + OneDrive — Befehle immer quoten; OneDrive kann I/O verlangsamen
 - PowerShell 5.1: kein `&&` — `;` oder `if ($?)` nutzen
 - **NIE Datei-Edits per PowerShell `-replace`** — Get-Content/Set-Content verhunzt UTF-8 (Mojibake bei —, →, ──). Immer Edit/Write-Tool nutzen (Fehler vom 11.06., verify-passage.mjs musste neu geschrieben werden)
@@ -122,7 +177,7 @@
 3. Bio-Eckpunkte (was öffentlich sein darf), berufliche Stationen
 4. GitHub/LinkedIn-URLs, CV ja/nein, Rückenfigur-Silhouette ja/nein
 5. **Domain-Entscheidung** (Empfehlung: mattisengelhardt.com, ~10 €/Jahr) — `site` in astro.config.mjs danach anpassen
-6. `gh auth login` für öffentliches Repo + Cloudflare-Pages-Verbindung
+6. ~~`gh auth login` / Repo~~ ✅ Repo läuft (`MattisEngelhardt/Website`) — offen nur noch: Cloudflare-Pages im Dashboard mit dem Repo verbinden (Build: `npm run build`, Output `dist`, env `NODE_OPTIONS=--use-system-ca` NICHT nötig in CF)
 
 ## Design-Prinzipien (aus Recherche, nie vergessen)
 
