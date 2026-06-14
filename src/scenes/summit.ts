@@ -21,11 +21,15 @@
  */
 import * as THREE from 'three/webgpu';
 import {
+  attribute,
+  cameraPosition,
   clamp,
   exp,
+  float,
   length,
   mix,
   mx_noise_float,
+  positionWorld,
   smoothstep,
   texture,
   time,
@@ -34,6 +38,8 @@ import {
   vec2,
   vec3,
 } from 'three/tsl';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createPainting } from './painting';
 
 /* ── Time-of-day palettes (the quintet, bent through the hours) ──── */
@@ -172,29 +178,33 @@ function jaggedPath(
   ctx.closePath();
 }
 
-function drawWanderer(): HTMLCanvasElement {
+function drawWanderer(withRock = true): HTMLCanvasElement {
   const cnv = document.createElement('canvas');
   cnv.width = FIG_W;
   cnv.height = FIG_H;
   const ctx = cnv.getContext('2d')!;
   ctx.fillStyle = '#fff';
 
-  /* the rock outcrop — runs off the bottom edge, hewn in three passes */
-  const rock: Array<[number, number]> = [
-    [70, FIG_H + 40], [105, 940], [185, 895], [255, 905], [330, 862],
-    [395, 852], [455, 878], [540, 858], [620, 896], [690, 932],
-    [710, FIG_H + 40],
-  ];
-  ctx.globalAlpha = 1;
-  jaggedPath(ctx, rock, 14, 1234);
-  ctx.fill();
-  ctx.globalAlpha = 0.65;
-  jaggedPath(ctx, rock.map(([x, y]) => [x + 6, y - 10]), 22, 987);
-  ctx.fill();
-  ctx.globalAlpha = 0.4;
-  jaggedPath(ctx, rock.map(([x, y]) => [x - 8, y - 16]), 26, 555);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  /* the rock outcrop — runs off the bottom edge, hewn in three passes.
+     Skipped when a real Blender outcrop carries the ground (the figure
+     then stands on actual geometry). */
+  if (withRock) {
+    const rock: Array<[number, number]> = [
+      [70, FIG_H + 40], [105, 940], [185, 895], [255, 905], [330, 862],
+      [395, 852], [455, 878], [540, 858], [620, 896], [690, 932],
+      [710, FIG_H + 40],
+    ];
+    ctx.globalAlpha = 1;
+    jaggedPath(ctx, rock, 14, 1234);
+    ctx.fill();
+    ctx.globalAlpha = 0.65;
+    jaggedPath(ctx, rock.map(([x, y]) => [x + 6, y - 10]), 22, 987);
+    ctx.fill();
+    ctx.globalAlpha = 0.4;
+    jaggedPath(ctx, rock.map(([x, y]) => [x - 8, y - 16]), 26, 555);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 
   /* the figure — feet planted at (~392, 862), height ~470 */
   ctx.beginPath();
@@ -267,6 +277,12 @@ const FOG_LAYERS = 7;
 const SKY_DIST = 70;
 const CAM_FOV = 55;
 const KUWAHARA_RADIUS = 4; // brush size of the painting
+
+/* real Blender outcrop (assets/summit/summit.glb): placed so its summit
+   meets the wanderer's feet (≈ world 2,-3,-4); peaks land far across the
+   sea of fog, crags break its surface mid-distance. */
+const TERRAIN_SCALE = 0.62;
+const TERRAIN_POS: [number, number, number] = [0.45, -7.96, -1.21];
 
 export interface SummitHandle {
   /** 0 = standing on the summit, 1 = fully sunk into the white-out */
@@ -388,8 +404,8 @@ export async function mountSummit(
     addFogLayer(depth, -48 + depth * 42, 0.42 + depth * 0.4, i);
   }
 
-  /* ── the wanderer on the rock (between far fog and the front wisp) ── */
-  const figTexture = new THREE.CanvasTexture(drawWanderer());
+  /* ── the wanderer (figure only — he stands on real Blender stone) ── */
+  const figTexture = new THREE.CanvasTexture(drawWanderer(false));
   const uFigure = uniform(new THREE.Color(0x181522)); // ink, a breath of warmth
   const figMat = new THREE.MeshBasicNodeMaterial();
   figMat.transparent = true;
@@ -397,9 +413,59 @@ export async function mountSummit(
   figMat.colorNode = uFigure;
   figMat.opacityNode = texture(figTexture).a;
   const figure = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), figMat);
-  figure.position.z = -4;
+  // a real 3D object now: he stands on the Blender summit, feet at ≈ -3,
+  // a touch right of centre, facing the sun. Fixed in world space (the
+  // billboard is upright; no need to refit to the frustum).
+  figure.scale.set(6.5, 8.65, 1);
+  figure.position.set(1.8, 0.0, -4);
   figure.renderOrder = 50;
   scene.add(figure);
+
+  /* ── real Blender terrain: honest 3D depth under the painterly fog.
+     A craggy Friedrich outcrop in the foreground (the wanderer's perch),
+     crags breaking the fog, soft hazed peaks on the horizon. Unlit +
+     baked AO in the vertex colour; the Kuwahara pass is the finish. */
+  const uHaze = uniform(new THREE.Color(0x9aa7c4));
+  const terrainMats: THREE.Material[] = [];
+  const terrainGeos: THREE.BufferGeometry[] = [];
+  let terrainGroup: THREE.Group | null = null;
+  try {
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    const gltf = await loader.loadAsync('/assets/summit/summit.glb');
+    terrainGroup = gltf.scene;
+    terrainGroup.scale.setScalar(TERRAIN_SCALE);
+    terrainGroup.position.set(...TERRAIN_POS);
+
+    /* aerial perspective: distance dissolves form into the fog colour */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hazed = (col: any, near: number, far: number, amt: number): any =>
+      mix(col, uHaze, smoothstep(near, far, length(positionWorld.sub(cameraPosition))).mul(amt));
+
+    terrainGroup.traverse((o: THREE.Object3D) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      terrainGeos.push(mesh.geometry);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const a: any = attribute('color');
+      const mat = new THREE.MeshBasicNodeMaterial();
+      if (mesh.name === 'Peaks') {
+        // far massifs: already pale, pushed deep into the haze
+        mat.colorNode = hazed(mix(a.rgb, uHaze, float(0.4)), 24, 80, 0.92);
+      } else if (mesh.name === 'Crags') {
+        mat.colorNode = hazed(a.rgb.mul(0.7), 14, 60, 0.85);
+      } else {
+        // the outcrop — sRGB lifts dark albedos (Cycles had AgX), so dim
+        mat.colorNode = hazed(a.rgb.mul(0.7), 8, 55, 0.55);
+      }
+      mesh.material = mat;
+      mesh.renderOrder = -1; // opaque, before the transparent sea of fog
+      terrainMats.push(mat);
+    });
+    scene.add(terrainGroup);
+  } catch {
+    /* no terrain — the painted fog scene still stands on its own */
+  }
 
   // one wisp of fog drifts in front of him — he stands inside the sea
   addFogLayer(1.15, -2, 0.15, 60);
@@ -430,6 +496,8 @@ export async function mountSummit(
         far.clone().lerp(near, Math.min(layer.depth, 1)),
       );
     }
+    // the terrain hazes into the far fog colour
+    (uHaze.value as THREE.Color).copy(far);
   }
   applyPalette();
   const paletteTimer = window.setInterval(applyPalette, 60_000);
@@ -468,16 +536,8 @@ export async function mountSummit(
       layer.mesh.position.y = -fh * (0.22 + Math.min(layer.depth, 1) * 0.16);
     }
 
-    // the wanderer: golden-section right of centre, facing the sun,
-    // rock running off the bottom of the frame
-    const figDist = camera.position.z - figure.position.z;
-    const fh = frustumHeightAt(figDist);
-    const fw = fh * camera.aspect;
-    const figH = fh * 0.58;
-    const figW = figH * (FIG_W / FIG_H);
-    figure.scale.set(figW, figH, 1);
-    figure.position.y = -fh / 2 + figH * 0.4;
-    figure.position.x = Math.min(fw * 0.115, figW * 0.7);
+    // the wanderer is fixed world geometry now (he stands on the real
+    // outcrop) — no per-frustum refit needed.
   }
   fit();
   window.addEventListener('resize', fit);
@@ -562,6 +622,8 @@ export async function mountSummit(
       window.removeEventListener('pointermove', onPointerMove);
       renderer.setAnimationLoop(null);
       figTexture.dispose();
+      for (const m of terrainMats) m.dispose();
+      for (const g of terrainGeos) g.dispose();
       painting.dispose();
       renderer.dispose();
     },
