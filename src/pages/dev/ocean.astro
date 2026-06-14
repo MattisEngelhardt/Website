@@ -1,0 +1,366 @@
+---
+// Dev-only spike for the IFFT ocean (Act I rebuild).
+// Renders ONLY the WebGPU compute sea — JONSWAP spectrum → time evolution →
+// Stockham inverse FFT → displaced water mesh — with a live FPS overlay, so
+// the honest frame rate can be judged on a real GPU. Noindex, sitemap-filtered.
+// Query params: ?n=256|128  ?wire  ?tiles=5
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="data:," />
+    <title>dev/ocean — IFFT spike</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0b1020;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #hud {
+        position: fixed;
+        left: 12px;
+        top: 10px;
+        color: #ffe6c0;
+        font: 13px/1.5 monospace;
+        text-shadow: 0 1px 2px #000;
+        white-space: pre;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div id="hud">booting…</div>
+    <script>
+      import * as THREE from 'three/webgpu';
+      import {
+        cameraPosition,
+        clamp,
+        Fn,
+        float,
+        length,
+        max,
+        mix,
+        modelWorldMatrix,
+        mx_noise_float,
+        normalize,
+        positionLocal,
+        positionWorld,
+        pow,
+        reflect,
+        smoothstep,
+        texture,
+        uniform,
+        vec2,
+        vec3,
+        vec4,
+      } from 'three/tsl';
+      import { createOcean } from '../../scenes/ocean';
+
+      const params = new URLSearchParams(location.search);
+      const N = params.get('n') === '256' ? 256 : 128; // 128 = the FPS budget choice
+      const TILES = Math.max(1, Math.min(9, parseInt(params.get('tiles') ?? '5', 10)));
+      const WIRE = params.has('wire');
+
+      const canvas = document.getElementById('stage') as HTMLCanvasElement;
+      const hud = document.getElementById('hud')!;
+
+      const renderer = new THREE.WebGPURenderer({ canvas, antialias: true });
+      try {
+        await renderer.init();
+      } catch (e) {
+        hud.textContent = 'no WebGPU: ' + (e as Error).message;
+        throw e;
+      }
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      renderer.setSize(innerWidth, innerHeight);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+      camera.position.set(0, 3.4, 10);
+      camera.lookAt(0, 1.6, -120);
+
+      // ── the ocean compute core: TWO cascades ──
+      // A big-swell patch carries the large rolling waves; a fine-detail
+      // patch (different size + heading) breaks the tiling and adds chop.
+      // Summed in the material, no periodicity is visible and the sea reads
+      // as a real, broken Aivazovsky swell.
+      const AMP = parseFloat(params.get('amp') ?? '6.0');
+      const CHOP = parseFloat(params.get('chop') ?? '1.7');
+      const WIND = parseFloat(params.get('wind') ?? '14');
+      const swell = createOcean(renderer, {
+        size: N, patch: parseFloat(params.get('patch') ?? '210'),
+        wind: WIND, heading: Math.PI * 0.5,
+        amplitude: AMP, choppy: CHOP,
+      });
+      const detail = createOcean(renderer, {
+        size: Math.min(N, 64), // the fine chop needs far less resolution
+        patch: 23, // a small, incommensurate patch — fine chop only
+        wind: WIND * 0.5, heading: Math.PI * 0.5 + 0.6,
+        amplitude: AMP * 0.18, choppy: CHOP * 0.8,
+      });
+      const PATCH = swell.patch;
+
+      // ── the sun + sky, as a colour FUNCTION of a view direction, so the
+      //    water reflects the very same sky it sits under. ──
+      // The palette is read straight off Aivazovsky's "Cap Martin":
+      //   sun core  glowing warm cream-gold (NOT white — it must not blow out)
+      //   horizon   saturated gold-yellow around the sun → orange outward
+      //   low sky   salmon / coral
+      //   clouds    pink-coral on the sun side, violet-grey in shadow
+      //   band      a turquoise-green transition where warm tips into cool
+      //   zenith    muted blue-violet
+      const SUN_DIR = new THREE.Vector3(-0.34, 0.075, -1).normalize();
+      const uSunDir = uniform(SUN_DIR);
+
+      // linear-space palette (sRGB picks from the painting, de-gamma'd ≈ ^2.2)
+      const C_SUNCORE = vec3(1.35, 1.10, 0.70); // glowing gold-cream, >1 to bloom a touch
+      const C_GOLD = vec3(1.15, 0.66, 0.18);     // gold-yellow at the horizon by the sun
+      const C_ORANGE = vec3(0.95, 0.40, 0.14);   // orange spreading out
+      const C_SALMON = vec3(0.78, 0.34, 0.30);   // low salmon/coral
+      const C_TURQ = vec3(0.30, 0.45, 0.34);     // the green-turquoise transition band
+      const C_ZEN = vec3(0.12, 0.18, 0.34);      // blue-violet zenith
+      const C_HORIZON = C_GOLD;                  // water aerial-fade target (warm)
+
+      // sky colour for a world-space direction d (normalised)
+      const skyColor: any = Fn(([d]: any) => {
+        const up = clamp(d.y, -1, 1);
+        // azimuthal proximity to the sun (1 toward sun, 0 away)
+        const sunAz = clamp(
+          normalize(vec3(d.x, 0, d.z)).dot(normalize(vec3(uSunDir.x, 0, uSunDir.z))),
+          -1, 1,
+        );
+        const nearSun = smoothstep(-0.1, 0.9, sunAz);
+        const awaySun = smoothstep(0.4, -0.6, sunAz); // 1 on the far side
+
+        // ── distinct vertical colour zones (read off the painting) ──
+        // gold-yellow right at the horizon by the sun, orange a touch out
+        const horizonWarm = mix(C_ORANGE, C_GOLD, nearSun);
+        // climb: gold horizon → salmon → turquoise band → blue-violet zenith
+        let sky: any = horizonWarm;
+        sky = mix(sky, C_SALMON, smoothstep(0.015, 0.10, up));
+        // the turquoise-green transition — strongest on the side away from sun
+        const turqAmt = smoothstep(0.06, 0.18, up).mul(smoothstep(0.30, 0.0, up).oneMinus().oneMinus());
+        sky = mix(sky, C_TURQ, smoothstep(0.07, 0.17, up).mul(awaySun.mul(0.55).add(0.18)));
+        sky = mix(sky, C_ZEN, smoothstep(0.20, 0.92, up));
+        void turqAmt;
+
+        // ── pink-coral cloud band (sun-lit) drifting across the mid sky ──
+        // broken organic masses between up≈0.14 and 0.42, brightest on the
+        // sun side fading to violet-grey in shadow.
+        const cloudShape = smoothstep(0.12, 0.22, up).mul(smoothstep(0.48, 0.28, up));
+        // fbm-ish break-up using the view azimuth & height as coords
+        const cn = mx_noise_float(vec3(d.x.mul(3.0), up.mul(6.0), d.z.mul(3.0)))
+          .mul(0.5).add(0.5);
+        const cn2 = mx_noise_float(vec3(d.x.mul(7.0), up.mul(11.0), d.z.mul(7.0)))
+          .mul(0.5).add(0.5);
+        const clumps = clamp(cn.mul(0.7).add(cn2.mul(0.4)).sub(0.25), 0.0, 1.0);
+        const cloudCol = mix(vec3(0.30, 0.24, 0.40), vec3(1.10, 0.54, 0.46), nearSun);
+        sky = mix(sky, cloudCol, cloudShape.mul(clumps).mul(0.85));
+
+        // ── the sun: a tight glowing disc + compact glow. Kept tight so it
+        //    does NOT wash the whole sky into pale peach. ──
+        const cosA = clamp(d.dot(uSunDir), -1, 1);
+        const disc = pow(max(cosA, 0), 1500).mul(1.8);
+        const glow = pow(max(cosA, 0), 90).mul(0.55);
+        const haze = pow(max(cosA, 0), 14).mul(0.16);
+        const sun = C_SUNCORE.mul(disc.add(glow).add(haze));
+        return sky.add(sun);
+      });
+
+      // soft-knee highlight roll-off: leaves everything below ~0.9 untouched
+      // (so the gold/orange stay saturated) and only compresses the blazing
+      // sun core, so it glows instead of clipping to a flat white disc.
+      const softKnee: any = Fn(([c]: any) => {
+        const knee = float(0.9);
+        const over = c.sub(knee).max(0);
+        // x below knee passes through; above knee → knee + tanh-ish roll-off
+        return c.min(knee).add(over.div(over.add(0.6)).mul(0.6));
+      });
+
+      const skyMat = new THREE.MeshBasicNodeMaterial();
+      skyMat.side = THREE.BackSide;
+      {
+        const dir = normalize(positionWorld.sub(cameraPosition));
+        skyMat.colorNode = vec4(softKnee(skyColor(dir)), 1);
+      }
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), skyMat);
+      scene.add(sky);
+
+      // ── the water mesh: tiled grid sampling BOTH cascades ──
+      for (const o of [swell, detail]) {
+        o.displacementTex.wrapS = o.displacementTex.wrapT = THREE.RepeatWrapping;
+        o.derivativeTex.wrapS = o.derivativeTex.wrapT = THREE.RepeatWrapping;
+      }
+
+      const SEG = N; // one vertex per spectral cell on the centre tile
+      const waterMat = new THREE.MeshBasicNodeMaterial();
+      waterMat.wireframe = WIRE;
+
+      // water body colours (linear): deep absorbs to a dark teal, the
+      // upwelling (sub-surface) light is a warm turquoise.
+      const C_DEEP = vec3(0.012, 0.045, 0.060);
+      const C_SSS = vec3(0.06, 0.26, 0.30);
+      const C_FOAM = vec3(0.82, 0.90, 0.92);
+      {
+        // pre-displacement world position of this (flat) vertex
+        const flatWorld = modelWorldMatrix.mul(vec4(positionLocal, 1)).xyz;
+        const uvBig = vec2(flatWorld.x, flatWorld.z).div(swell.patch);
+        const uvSm = vec2(flatWorld.x, flatWorld.z).div(detail.patch);
+        const dispBig = texture(swell.displacementTex, uvBig);
+        const dispSm = texture(detail.displacementTex, uvSm);
+        const disp = dispBig.add(dispSm); // sum the two cascades
+        waterMat.positionNode = positionLocal.add(vec3(disp.x, disp.z, disp.y));
+
+        // distance from the eye → fade the fine cascade out with range so it
+        // never aliases into a regular moiré on the horizon (the standard
+        // ocean trick: far water reads smoother, not as a sparkle-grid).
+        const dist = length(positionWorld.sub(cameraPosition));
+        const detailFade = float(1.0).sub(smoothstep(30.0, 240.0, dist)); // 1 near → 0 far
+
+        // NORMALS straight from the slope maps (smooth — independent of the
+        // mesh facet resolution, so the surface reads round, never blocky).
+        const derBig = texture(swell.derivativeTex, uvBig);
+        const derSm = texture(detail.derivativeTex, uvSm);
+        const slopeX = derBig.x.add(derSm.x.mul(detailFade));
+        const slopeZ = derBig.y.add(derSm.y.mul(detailFade));
+        const foam = derBig.z.max(derSm.z.mul(detailFade));
+        const nWorld = normalize(vec3(slopeX.negate(), float(1.0), slopeZ.negate()));
+
+        const V = normalize(cameraPosition.sub(positionWorld)); // to camera
+        const NdotV = max(nWorld.dot(V), 0.0);
+
+        // ── Fresnel (Schlick, water F0 ≈ 0.02) ──
+        const F0 = float(0.02);
+        const fres = F0.add(float(1.0).sub(F0).mul(pow(float(1.0).sub(NdotV), 5.0)));
+
+        // ── reflection: sample the SAME sky along the reflected ray ──
+        const Rdir = reflect(V.negate(), nWorld);
+        const refl = skyColor(normalize(Rdir));
+
+        // ── refraction / body: deep colour + sub-surface upwelling, brighter
+        //    where the wave is steep & back-lit (the Aivazovsky glow). ──
+        const sun = uSunDir;
+        // sub-surface: light coming THROUGH the wave from the sun side
+        const back = max(V.negate().dot(sun), 0.0); // looking toward the sun
+        const heightN = clamp(disp.y.mul(0.18).add(0.5), 0.0, 1.0);
+        const sss = C_SSS.mul(
+          pow(heightN, 2.0).mul(0.8).add(0.15),
+        ).mul(back.mul(1.6).add(0.5));
+        const body = C_DEEP.add(sss);
+
+        // ── specular sun glitter on the micro-normal (faded with range so
+        //    it doesn't pixel-sparkle into a grid on the horizon) ──
+        const H = normalize(V.add(sun));
+        const spec = pow(max(nWorld.dot(H), 0.0), 120.0)
+          .mul(detailFade.mul(2.0).add(0.4));
+        // the broad golden road just under the sun
+        const road = pow(max(Rdir.dot(sun), 0.0), 30.0).mul(0.8);
+
+        // combine: body refracts, sky reflects, Fresnel mixes them
+        let col: any = mix(body, refl, fres);
+        col = col.add(C_SUNCORE.mul(spec));   // gold-cream glitter
+        col = col.add(C_GOLD.mul(road));      // the golden road, warmer
+
+        // ── foam on the breaking crests (turquoise-white) ──
+        col = mix(col, C_FOAM, clamp(foam, 0.0, 1.0).mul(0.85));
+
+        // aerial perspective into the horizon (toward the warm sky)
+        const air = smoothstep(260.0, 1100.0, dist).mul(0.8);
+        col = mix(col, C_HORIZON, air);
+
+        // same soft-knee as the sky so glints glow rather than clip to white,
+        // keeping the water saturated in the painting's palette.
+        col = softKnee(col);
+
+        waterMat.colorNode = vec4(col, 1);
+      }
+
+      // a grid of tiles around the camera for horizon depth
+      const tileGeo = new THREE.PlaneGeometry(PATCH, PATCH, SEG, SEG);
+      const half = Math.floor(TILES / 2);
+      const water = new THREE.Group();
+      for (let tz = -half; tz <= half; tz++) {
+        for (let tx = -half; tx <= half; tx++) {
+          const m = new THREE.Mesh(tileGeo, waterMat);
+          m.rotation.x = -Math.PI / 2;
+          m.position.set(tx * PATCH, 0, tz * PATCH - PATCH); // shift forward
+          water.add(m);
+        }
+      }
+      scene.add(water);
+
+      let triCount = 0;
+      tileGeo.computeBoundingBox();
+      triCount = (SEG * SEG * 2) * TILES * TILES;
+
+      // ── loop + FPS meter ──
+      let t0 = performance.now();
+      let frames = 0;
+      let fps = 0;
+      let computing = false;
+
+      async function frame() {
+        const now = performance.now();
+        const t = now / 1000;
+
+        // advance both cascades (await keeps the compute ordered)
+        if (!computing) {
+          computing = true;
+          Promise.all([swell.update(t * 0.9), detail.update(t * 0.9)]).then(() => {
+            computing = false;
+          });
+        }
+
+        renderer.render(scene, camera);
+
+        frames++;
+        if (now - t0 >= 500) {
+          fps = Math.round((frames * 1000) / (now - t0));
+          frames = 0;
+          t0 = now;
+          hud.textContent =
+            `IFFT ocean spike\n` +
+            `N = ${N}   tiles = ${TILES}x${TILES}\n` +
+            `tris ≈ ${(triCount / 1000).toFixed(0)}k\n` +
+            `FPS = ${fps}\n` +
+            `(?n=128 for the lighter sea, ?wire, ?tiles=N)`;
+          (window as any).__oceanFps = fps;
+        }
+      }
+      renderer.setAnimationLoop(frame);
+
+      addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      // slow orbit on drag for inspection
+      let dragging = false, lx = 0;
+      let az = 0;
+      addEventListener('pointerdown', (e) => { dragging = true; lx = e.clientX; });
+      addEventListener('pointerup', () => { dragging = false; });
+      addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        az += (e.clientX - lx) * 0.003;
+        lx = e.clientX;
+        const r = 18;
+        camera.position.x = Math.sin(az) * r;
+        camera.position.z = Math.cos(az) * r;
+        camera.lookAt(0, 2, -120);
+      });
+    </script>
+  </body>
+</html>

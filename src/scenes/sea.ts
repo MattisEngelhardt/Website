@@ -1,272 +1,115 @@
 /**
- * Act I — The Sea.
+ * Act I — The Sea (rebuilt under the doctrine).
  *
- * An Aivazovsky marine: a low sun over open water, a golden road of
- * light on the swell, and a ship crossing it — the carrier of the
- * biography. Gerstner waves displace the water in the vertex stage;
- * light is painted by hand in the fragment (sun road via reflection,
- * glass-green crests, aerial fade into the horizon).
+ * A living Aivazovsky marine: a low sun glowing gold over open water, the
+ * golden road of its reflection breaking on a real, physically synthesised
+ * ocean, and a Blender-built brig crossing it — the carrier of the
+ * biography — with a small skiff of figures in the lower-right of the frame.
  *
- * The cursor is a brush of light: it leaves a fading trail of sun on
- * the water where it passes (drawn into a canvas, sampled in world
- * space by the water shader).
+ * The sea is a Tessendorf IFFT ocean on WebGPU compute (`createOcean`): two
+ * cascades (a long swell + a fine chop) summed into a height/slope/foam
+ * field. The water shades physically — Fresnel against the very sky it sits
+ * under, depth absorption, sub-surface glow on the back-lit crests, foam on
+ * the breaking ones. The brig and skiff are real GLB geometry that FLOAT on
+ * the surface via the ocean's CPU height/slope mirror (honest buoyancy, no
+ * readback). The Kuwahara painterly pass finishes the whole frame as paint.
  *
- * Scroll drives `setVoyage(t)`: the palette deepens from golden hour
- * into dusk, the ship sails out of the far light toward the viewer,
- * the camera leans down to the water — and the sun blooms into the
- * gold-out that resolves onto the next page of the book.
- *
- * Same painting pipeline as the summit (Kuwahara), without the lens —
- * the sea's interaction is the light, not the window.
+ * Scroll drives `setVoyage(t)`: the palette deepens from golden hour into
+ * dusk, the brig sails out of the far light toward the viewer, the camera
+ * leans down to the water, and the sun blooms into the gold-out that
+ * resolves onto the next page of the book.
  */
 import * as THREE from 'three/webgpu';
 import {
+  attribute,
   cameraPosition,
-  exp,
+  clamp,
   float,
+  Fn,
   length,
   max,
   mix,
+  modelWorldMatrix,
   mx_noise_float,
+  normalize,
   positionLocal,
   positionWorld,
+  pow,
   reflect,
   smoothstep,
   texture,
-  time,
   uniform,
-  uv,
-  varying,
   vec2,
   vec3,
+  vec4,
 } from 'three/tsl';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createPainting } from './painting';
+import { createOcean } from './ocean';
 
-/* ── Palettes: golden hour → dusk over one voyage ────────────────── */
-
+/* ── voyage palette: golden hour → dusk ──────────────────────────────── */
 interface SeaPalette {
-  zenith: number;
-  mid: number;
-  horizon: number;
-  sunCore: number;
-  sunHalo: number;
-  waterDeep: number;
-  waterLift: number;
-  crest: number;
-  /** sun height above the horizon line, in sky-uv units */
+  sunCore: [number, number, number];
+  gold: [number, number, number];
+  orange: [number, number, number];
+  salmon: [number, number, number];
+  turq: [number, number, number];
+  zenith: [number, number, number];
+  cloudLit: [number, number, number];
+  cloudShade: [number, number, number];
+  deep: [number, number, number];
+  sss: [number, number, number];
+  /** sun height above the horizon (world-dir y) */
   sunY: number;
-  sunIntensity: number;
 }
 
-const GOLDEN_SEA: SeaPalette = {
-  zenith: 0x35466e, mid: 0xc97f4e, horizon: 0xffb45e,
-  sunCore: 0xfff1c0, sunHalo: 0xff9e4a,
-  waterDeep: 0x16243c, waterLift: 0x2e7a76, crest: 0x8fd0bd,
-  sunY: 0.075, sunIntensity: 1.0,
+// linear-space palettes read off Aivazovsky's "Cap Martin"
+const GOLDEN: SeaPalette = {
+  sunCore: [1.35, 1.10, 0.70], gold: [1.15, 0.66, 0.18], orange: [0.95, 0.40, 0.14],
+  salmon: [0.78, 0.34, 0.30], turq: [0.30, 0.45, 0.34], zenith: [0.12, 0.18, 0.34],
+  cloudLit: [1.10, 0.54, 0.46], cloudShade: [0.30, 0.24, 0.40],
+  deep: [0.012, 0.045, 0.060], sss: [0.06, 0.26, 0.30], sunY: 0.075,
 };
-const DUSK_SEA: SeaPalette = {
-  zenith: 0x232a4a, mid: 0x5d4a6e, horizon: 0xc06a44,
-  sunCore: 0xffc95c, sunHalo: 0xc9452a,
-  waterDeep: 0x11182b, waterLift: 0x275f68, crest: 0xc98a6a,
-  sunY: 0.02, sunIntensity: 1.05,
+const DUSK: SeaPalette = {
+  sunCore: [1.15, 0.80, 0.46], gold: [0.95, 0.46, 0.16], orange: [0.74, 0.28, 0.14],
+  salmon: [0.56, 0.26, 0.34], turq: [0.20, 0.30, 0.34], zenith: [0.08, 0.11, 0.26],
+  cloudLit: [0.86, 0.40, 0.42], cloudShade: [0.20, 0.16, 0.32],
+  deep: [0.008, 0.030, 0.046], sss: [0.05, 0.20, 0.26], sunY: 0.022,
 };
 
-/* ── The waves (shared by GPU displacement and CPU ship float) ──── */
-
-interface WaveTrain {
-  dir: [number, number]; // in plane-local xy; negative y travels toward camera
-  len: number; // wavelength, world units
-  amp: number;
-  steep: number;
-}
-
-// a long swell with cross-chop on top; total amplitude ≈ 0.85
-// (a patient sea — the camera rides above it, not inside it)
-const WAVES: WaveTrain[] = [
-  { dir: [0.1, -1.0], len: 34, amp: 0.34, steep: 0.5 },
-  { dir: [0.28, -0.96], len: 21, amp: 0.22, steep: 0.55 },
-  { dir: [-0.38, -0.93], len: 12.5, amp: 0.14, steep: 0.6 },
-  { dir: [0.86, -0.51], len: 7.5, amp: 0.07, steep: 0.7 },
-  { dir: [-0.65, -0.76], len: 4.6, amp: 0.04, steep: 0.8 },
-  { dir: [0.16, -0.99], len: 2.7, amp: 0.022, steep: 0.9 },
-];
-
-const G = 9.81;
-const TIME_SCALE = 0.42; // a patient, painterly sea
-
-interface WaveConst {
-  dx: number;
-  dy: number;
-  k: number;
-  amp: number;
-  q: number; // per-wave steepness factor Q/(k·A·N)
-  speed: number; // phase speed × k  (rad/s)
-}
-
-const WAVE_CONSTS: WaveConst[] = WAVES.map((w) => {
-  const len = Math.hypot(w.dir[0], w.dir[1]);
-  const k = (2 * Math.PI) / w.len;
-  return {
-    dx: w.dir[0] / len,
-    dy: w.dir[1] / len,
-    k,
-    amp: w.amp,
-    q: w.steep / (k * w.amp * WAVES.length),
-    speed: Math.sqrt(G * k),
-  };
-});
-
-/** CPU mirror of the Gerstner sum (vertical only) — floats the ship */
-function waveHeightAt(x: number, yLocal: number, t: number): number {
-  let h = 0;
-  for (const w of WAVE_CONSTS) {
-    const f = w.k * (w.dx * x + w.dy * yLocal) - w.speed * t;
-    h += w.amp * Math.sin(f);
-  }
-  return h;
-}
-
-/* ── The ship, drawn in code (a brig with the wind aft) ──────────── */
-
-const SHIP_W = 768;
-const SHIP_H = 512;
-
-function drawShip(): HTMLCanvasElement {
-  const cnv = document.createElement('canvas');
-  cnv.width = SHIP_W;
-  cnv.height = SHIP_H;
-  const ctx = cnv.getContext('2d')!;
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#fff';
-
-  /* hull — bow left, gentle sheer, transom stern */
-  ctx.beginPath();
-  ctx.moveTo(105, 298); // bow at the waterline shoulder
-  ctx.quadraticCurveTo(360, 282, 640, 286); // deck line
-  ctx.lineTo(648, 302); // transom
-  ctx.quadraticCurveTo(620, 348, 590, 346); // stern underside
-  ctx.quadraticCurveTo(370, 366, 150, 350); // keel run
-  ctx.quadraticCurveTo(118, 340, 105, 298); // bow stem
-  ctx.closePath();
-  ctx.fill();
-
-  /* bowsprit */
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(110, 296);
-  ctx.lineTo(20, 256);
-  ctx.stroke();
-
-  /* masts, raked slightly aft */
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.moveTo(252, 296);
-  ctx.lineTo(268, 82);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(452, 292);
-  ctx.lineTo(472, 50);
-  ctx.stroke();
-
-  /* sails at mid-alpha — the shader reads the alpha channel as cloth
-     vs. hull: sails render as sun-lit canvas, the hull stays ink */
-  ctx.globalAlpha = 0.55;
-
-  // fore course, billowing toward the bow
-  ctx.beginPath();
-  ctx.moveTo(196, 252);
-  ctx.quadraticCurveTo(150, 205, 184, 162);
-  ctx.lineTo(330, 156);
-  ctx.quadraticCurveTo(352, 205, 338, 248);
-  ctx.closePath();
-  ctx.fill();
-
-  // fore topsail
-  ctx.beginPath();
-  ctx.moveTo(190, 156);
-  ctx.quadraticCurveTo(165, 128, 202, 104);
-  ctx.lineTo(312, 100);
-  ctx.quadraticCurveTo(330, 128, 324, 152);
-  ctx.closePath();
-  ctx.fill();
-
-  // main gaff sail with its boom
-  ctx.beginPath();
-  ctx.moveTo(462, 285);
-  ctx.lineTo(458, 92);
-  ctx.lineTo(640, 128);
-  ctx.quadraticCurveTo(668, 210, 652, 276);
-  ctx.closePath();
-  ctx.fill();
-
-  // jibs running to the bowsprit
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  ctx.moveTo(28, 258);
-  ctx.lineTo(252, 96);
-  ctx.lineTo(132, 296);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(82, 272);
-  ctx.lineTo(258, 140);
-  ctx.lineTo(168, 298);
-  ctx.closePath();
-  ctx.fill();
-
-  /* rigging — dark lines, full alpha so the shader keeps them ink */
-  ctx.globalAlpha = 1;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(20, 256);
-  ctx.lineTo(268, 84);
-  ctx.lineTo(472, 52);
-  ctx.lineTo(644, 288);
-  ctx.stroke();
-
-  /* pennant at the main top */
-  ctx.globalAlpha = 0.55;
-  ctx.beginPath();
-  ctx.moveTo(472, 52);
-  ctx.lineTo(420, 60);
-  ctx.lineTo(472, 70);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.globalAlpha = 1;
-  return cnv;
-}
-
-/* ── Scene ───────────────────────────────────────────────────────── */
-
-const CAM_FOV = 55;
-const SKY_DIST = 160;
+const CAM_FOV = 52;
 const KUWAHARA_RADIUS = 4;
+const OCEAN_N = 128;
 
-// the water window the cursor's light trail lives in (world units)
-const TRAIL_X = 70; // x ∈ [-70, 70]
-const TRAIL_Z0 = -150; // z ∈ [-150, 10]
-const TRAIL_Z1 = 10;
+/* the cursor's trail of light lives in this water window (world units) */
+const TRAIL_X = 90;
+const TRAIL_Z0 = -220;
+const TRAIL_Z1 = 20;
 const TRAIL_RES = 256;
 
 export interface SeaHandle {
-  /** 0 = golden departure … 1 = dusk, ship close, gold-out */
   setVoyage(t: number): void;
   dispose(): void;
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const lerp3 = (a: number[], b: number[], t: number): [number, number, number] =>
+  [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+function smoothstepJs(e0: number, e1: number, x: number): number {
+  const u = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1);
+  return u * u * (3 - 2 * u);
 }
 
 export async function mountSea(
   canvas: HTMLCanvasElement,
 ): Promise<SeaHandle | null> {
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: true });
-
   try {
     await renderer.init();
   } catch {
     return null; // the painted CSS sea stays
   }
-
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
   const scene = new THREE.Scene();
@@ -274,51 +117,88 @@ export async function mountSea(
     CAM_FOV,
     canvas.clientWidth / Math.max(canvas.clientHeight, 1),
     0.1,
-    400,
+    3000,
   );
-  camera.position.set(0, 5.2, 14); // above the swell, like a deck rail
+  camera.position.set(0, 3.6, 12);
+  camera.lookAt(0, 1.6, -120);
 
-  /* shared uniforms (palette written on the CPU per voyage step) */
-  const uZenith = uniform(new THREE.Color());
-  const uMid = uniform(new THREE.Color());
-  const uHorizon = uniform(new THREE.Color());
-  const uSunCore = uniform(new THREE.Color());
-  const uSunHalo = uniform(new THREE.Color());
-  const uWaterDeep = uniform(new THREE.Color());
-  const uWaterLift = uniform(new THREE.Color());
-  const uCrest = uniform(new THREE.Color());
-  const uSunPos = uniform(new THREE.Vector2(0.56, 0.575));
-  const uSunDir = uniform(new THREE.Vector3(0.1, 0.08, -1).normalize());
-  const uSunIntensity = uniform(1);
-  const uSkyAspect = uniform(1.8);
-  // one clock for GPU waves AND the CPU mirror that floats the ship
-  const uTime = uniform(0);
-
-  /* ── the sky: horizon line at uv 0.5, sun low above it ── */
-  const skyMat = new THREE.MeshBasicNodeMaterial();
-  {
-    const u = uv();
-    const lower = mix(uHorizon, uMid, smoothstep(0.5, 0.8, u.y));
-    const sky = mix(lower, uZenith, smoothstep(0.66, 0.96, u.y));
-    const d = length(u.sub(uSunPos).mul(vec2(uSkyAspect, 1)));
-    // a crisp low sun disc inside a restrained halo — never a wash
-    const core = exp(d.mul(-55.0)).mul(uSunIntensity).mul(1.25);
-    const halo = exp(d.mul(-6.5)).mul(uSunIntensity).mul(0.45);
-    // the dusk glow hugs the waterline
-    const band = exp(u.y.sub(0.5).abs().mul(-9.0))
-      .mul(exp(u.x.sub(uSunPos.x).abs().mul(-2.6)))
-      .mul(uSunIntensity)
-      .mul(0.1);
-    const grain = mx_noise_float(vec3(u.mul(3.0), time.mul(0.02))).mul(0.015);
-    skyMat.colorNode = sky
-      .add(uSunCore.mul(core))
-      .add(uSunHalo.mul(halo))
-      .add(uSunHalo.mul(band))
-      .add(grain);
+  /* ── the ocean: two cascades ── */
+  const swell = createOcean(renderer, {
+    size: OCEAN_N, patch: 210, wind: 14,
+    heading: Math.PI * 0.5, amplitude: 6.0, choppy: 1.7,
+  });
+  const detail = createOcean(renderer, {
+    size: 64, patch: 23, wind: 7,
+    heading: Math.PI * 0.5 + 0.6, amplitude: 1.1, choppy: 1.35,
+  });
+  for (const o of [swell, detail]) {
+    o.displacementTex.wrapS = o.displacementTex.wrapT = THREE.RepeatWrapping;
+    o.derivativeTex.wrapS = o.derivativeTex.wrapT = THREE.RepeatWrapping;
   }
-  const skyMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), skyMat);
-  skyMesh.position.set(0, camera.position.y, -SKY_DIST);
-  scene.add(skyMesh);
+
+  /* ── palette uniforms (written per voyage step on the CPU) ── */
+  const uSunDir = uniform(new THREE.Vector3(-0.34, 0.075, -1).normalize());
+  const uSunCore = uniform(new THREE.Vector3(...GOLDEN.sunCore));
+  const uGold = uniform(new THREE.Vector3(...GOLDEN.gold));
+  const uOrange = uniform(new THREE.Vector3(...GOLDEN.orange));
+  const uSalmon = uniform(new THREE.Vector3(...GOLDEN.salmon));
+  const uTurq = uniform(new THREE.Vector3(...GOLDEN.turq));
+  const uZenith = uniform(new THREE.Vector3(...GOLDEN.zenith));
+  const uCloudLit = uniform(new THREE.Vector3(...GOLDEN.cloudLit));
+  const uCloudShade = uniform(new THREE.Vector3(...GOLDEN.cloudShade));
+  const uDeep = uniform(new THREE.Vector3(...GOLDEN.deep));
+  const uSSS = uniform(new THREE.Vector3(...GOLDEN.sss));
+  const uSunGain = uniform(1);
+
+  /* ── the sky as a colour FUNCTION of a view direction (water reflects it) ── */
+  const skyColor: any = Fn(([d]: any) => {
+    const up = clamp(d.y, -1, 1);
+    const sunAz = clamp(
+      normalize(vec3(d.x, 0, d.z)).dot(normalize(vec3(uSunDir.x, 0, uSunDir.z))),
+      -1, 1,
+    );
+    const nearSun = smoothstep(-0.1, 0.9, sunAz);
+    const awaySun = smoothstep(0.4, -0.6, sunAz);
+
+    const horizonWarm = mix(uOrange, uGold, nearSun);
+    let sky: any = horizonWarm;
+    sky = mix(sky, uSalmon, smoothstep(0.015, 0.10, up));
+    sky = mix(sky, uTurq, smoothstep(0.07, 0.17, up).mul(awaySun.mul(0.55).add(0.18)));
+    sky = mix(sky, uZenith, smoothstep(0.20, 0.92, up));
+
+    // broken pink-coral cloud band drifting across the mid sky
+    const cloudShape = smoothstep(0.12, 0.22, up).mul(smoothstep(0.48, 0.28, up));
+    const cn = mx_noise_float(vec3(d.x.mul(3.0), up.mul(6.0), d.z.mul(3.0))).mul(0.5).add(0.5);
+    const cn2 = mx_noise_float(vec3(d.x.mul(7.0), up.mul(11.0), d.z.mul(7.0))).mul(0.5).add(0.5);
+    const clumps = clamp(cn.mul(0.7).add(cn2.mul(0.4)).sub(0.25), 0.0, 1.0);
+    const cloudCol = mix(uCloudShade, uCloudLit, nearSun);
+    sky = mix(sky, cloudCol, cloudShape.mul(clumps).mul(0.85));
+
+    // the sun: tight glowing disc + compact glow (never washes the sky)
+    const cosA = clamp(d.dot(uSunDir), -1, 1);
+    const disc = pow(max(cosA, 0), 1500).mul(1.8);
+    const glow = pow(max(cosA, 0), 90).mul(0.55);
+    const haze = pow(max(cosA, 0), 14).mul(0.16);
+    const sun = uSunCore.mul(disc.add(glow).add(haze).mul(uSunGain));
+    return sky.add(sun);
+  });
+
+  // soft-knee highlight roll-off: keeps the palette saturated, only the
+  // blazing sun core rolls off so it glows rather than clipping to white.
+  const softKnee: any = Fn(([c]: any) => {
+    const knee = float(0.9);
+    const over = c.sub(knee).max(0);
+    return c.min(knee).add(over.div(over.add(0.6)).mul(0.6));
+  });
+
+  const skyMat = new THREE.MeshBasicNodeMaterial();
+  skyMat.side = THREE.BackSide;
+  {
+    const dir = normalize(positionWorld.sub(cameraPosition));
+    skyMat.colorNode = vec4(softKnee(skyColor(dir)), 1);
+  }
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(2200, 32, 16), skyMat);
+  scene.add(sky);
 
   /* ── the cursor's trail of light (canvas → world-space texture) ── */
   const trailCnv = document.createElement('canvas');
@@ -328,166 +208,145 @@ export async function mountSea(
   trailCtx.fillStyle = '#000';
   trailCtx.fillRect(0, 0, TRAIL_RES, TRAIL_RES);
   const trailTex = new THREE.CanvasTexture(trailCnv);
-  trailTex.flipY = false; // identity mapping: shader v == canvas y
+  trailTex.flipY = false;
 
-  /* ── the water: Gerstner displacement + hand-painted light ── */
+  /* ── the water material: IFFT displacement + physical shading ── */
+  const C_FOAM = vec3(0.82, 0.90, 0.92);
   const waterMat = new THREE.MeshBasicNodeMaterial();
   {
-    const p = positionLocal.xy;
+    const flatWorld = modelWorldMatrix.mul(vec4(positionLocal, 1)).xyz;
+    const uvBig = vec2(flatWorld.x, flatWorld.z).div(swell.patch);
+    const uvSm = vec2(flatWorld.x, flatWorld.z).div(detail.patch);
+    const dispBig = texture(swell.displacementTex, uvBig);
+    const dispSm = texture(detail.displacementTex, uvSm);
+    const disp = dispBig.add(dispSm);
+    waterMat.positionNode = positionLocal.add(vec3(disp.x, disp.z, disp.y));
 
-    // sum the wave trains (unrolled — params are JS constants).
-    // Loosely typed: reassignment narrows VarNode → Node and trips ts(2322).
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    let dx: any = float(0);
-    let dy: any = float(0);
-    let dz: any = float(0);
-    let nx: any = float(0);
-    let ny: any = float(0);
-    let nz: any = float(0);
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-    for (const w of WAVE_CONSTS) {
-      const f = p
-        .dot(vec2(w.dx, w.dy))
-        .mul(w.k)
-        .sub(uTime.mul(w.speed));
-      const c = f.cos();
-      const s = f.sin();
-      const qa = w.q * w.amp;
-      const ka = w.k * w.amp;
-      dx = dx.add(c.mul(qa * w.dx));
-      dy = dy.add(c.mul(qa * w.dy));
-      dz = dz.add(s.mul(w.amp));
-      nx = nx.add(c.mul(ka * w.dx));
-      ny = ny.add(c.mul(ka * w.dy));
-      nz = nz.add(s.mul(w.q * ka));
-    }
-
-    waterMat.positionNode = positionLocal.add(vec3(dx, dy, dz));
-
-    // analytic Gerstner normal (local), interpolated to the fragment
-    const vNormal = varying(vec3(nx.negate(), ny.negate(), float(1).sub(nz)));
-    const vHeight = varying(float(dz)); // float() restores typing over the `any` sum
-
-    // local→world for the -90° X rotation: (x, y, z) → (x, z, -y)
-    const NW = vec3(vNormal.x, vNormal.z, vNormal.y.negate()).normalize();
-    const V = cameraPosition.sub(positionWorld).normalize();
-    const R = reflect(V.negate(), NW);
-    const ralign = max(R.dot(uSunDir), 0.0);
-
-    const hN = vHeight.div(0.85).mul(0.5).add(0.5); // ≈ 0..1
-    const facing = max(NW.dot(V), 0.0);
-    const fresnel = float(1).sub(facing).pow(3.0);
-
-    // body of the sea: deep ink lifted to turquoise on rising water —
-    // the lift stays modest so the sea keeps its saturated depth
-    const base = mix(
-      uWaterDeep,
-      uWaterLift,
-      hN.mul(0.55).add(fresnel.mul(0.22)),
-    );
-
-    // glass crests catching the low sun
-    const sunward = max(NW.dot(uSunDir), 0.0);
-    const crest = smoothstep(0.62, 0.97, hN)
-      .mul(sunward.mul(0.4).add(0.2))
-      .mul(0.35);
-
-    // painterly value drift so no two strokes match
-    const drift = mx_noise_float(
-      vec3(positionWorld.xz.mul(0.16), time.mul(0.12)),
-    ).mul(0.04);
-
-    // aerial perspective: the far sea dissolves toward the horizon —
-    // never fully, or the water turns to milk
     const dist = length(positionWorld.sub(cameraPosition));
-    const air = smoothstep(70.0, 160.0, dist).mul(0.88);
+    const detailFade = float(1.0).sub(smoothstep(30.0, 240.0, dist));
 
-    const body = mix(base.add(uCrest.mul(crest)).add(drift), uHorizon, air);
+    const derBig = texture(swell.derivativeTex, uvBig);
+    const derSm = texture(detail.derivativeTex, uvSm);
+    const slopeX = derBig.x.add(derSm.x.mul(detailFade));
+    const slopeZ = derBig.y.add(derSm.y.mul(detailFade));
+    const foam = derBig.z.max(derSm.z.mul(detailFade));
+    const nWorld = normalize(vec3(slopeX.negate(), float(1.0), slopeZ.negate()));
 
-    // the golden road: a narrow blade of reflection under the sun
-    const road = ralign.pow(18.0).mul(uSunIntensity).mul(0.5);
-    const sparkle = ralign.pow(140.0).mul(uSunIntensity).mul(1.1);
+    const V = normalize(cameraPosition.sub(positionWorld));
+    const NdotV = max(nWorld.dot(V), 0.0);
 
-    // the hand of the visitor: lingering light where the cursor passed
+    // Fresnel (Schlick, F0 ≈ 0.02) → sky reflection vs. water body
+    const F0 = float(0.02);
+    const fres = F0.add(float(1.0).sub(F0).mul(pow(float(1.0).sub(NdotV), 5.0)));
+    const Rdir = reflect(V.negate(), nWorld);
+    const refl = skyColor(normalize(Rdir));
+
+    // body: deep colour + sub-surface upwelling, brighter on back-lit crests
+    const sun = uSunDir;
+    const back = max(V.negate().dot(sun), 0.0);
+    const heightN = clamp(disp.y.mul(0.18).add(0.5), 0.0, 1.0);
+    const sss = uSSS.mul(pow(heightN, 2.0).mul(0.8).add(0.15)).mul(back.mul(1.6).add(0.5));
+    const body = uDeep.add(sss);
+
+    // sun glitter + the broad golden road
+    const H = normalize(V.add(sun));
+    const spec = pow(max(nWorld.dot(H), 0.0), 120.0).mul(detailFade.mul(2.0).add(0.4));
+    const road = pow(max(Rdir.dot(sun), 0.0), 30.0).mul(0.8);
+
+    let col: any = mix(body, refl, fres);
+    col = col.add(uSunCore.mul(spec));
+    col = col.add(uGold.mul(road));
+    col = mix(col, C_FOAM, clamp(foam, 0.0, 1.0).mul(0.85));
+    // hand of the visitor: lingering light where the cursor passed
     const tUv = vec2(
       positionWorld.x.add(TRAIL_X).div(TRAIL_X * 2),
       positionWorld.z.sub(TRAIL_Z0).div(TRAIL_Z1 - TRAIL_Z0),
     );
-    const handLight = texture(trailTex, tUv).r.mul(float(1).sub(air));
-
-    waterMat.colorNode = body
-      .add(uSunHalo.mul(road))
-      .add(uSunCore.mul(sparkle))
-      .add(uSunCore.mul(handLight).mul(0.6));
+    const handLight = texture(trailTex, tUv).r;
+    col = col.add(uGold.mul(handLight).mul(0.5));
+    // aerial perspective into the warm horizon
+    const air = smoothstep(260.0, 1400.0, dist).mul(0.8);
+    col = mix(col, uGold, air);
+    col = softKnee(col);
+    waterMat.colorNode = vec4(col, 1);
   }
 
-  const waterGeo = new THREE.PlaneGeometry(360, 240, 220, 150);
-  const water = new THREE.Mesh(waterGeo, waterMat);
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(0, 0, -60); // runs from z=+60 behind the camera to −180
+  // tiled grid of water around the camera for horizon depth
+  const PATCH = swell.patch;
+  const TILES = 5;
+  const tileGeo = new THREE.PlaneGeometry(PATCH, PATCH, OCEAN_N, OCEAN_N);
+  const water = new THREE.Group();
+  const half = Math.floor(TILES / 2);
+  for (let tz = -half; tz <= half; tz++) {
+    for (let tx = -half; tx <= half; tx++) {
+      const m = new THREE.Mesh(tileGeo, waterMat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(tx * PATCH, 0, tz * PATCH - PATCH);
+      water.add(m);
+    }
+  }
   scene.add(water);
 
-  /* ── the ship on its voyage ── */
-  const shipTex = new THREE.CanvasTexture(drawShip());
-  const uShip = uniform(new THREE.Color(0x231a26)); // warm ink silhouette
-  const uSail = uniform(new THREE.Color(0xf2c98e)); // sun through the cloth
-  const shipMat = new THREE.MeshBasicNodeMaterial();
-  shipMat.transparent = true;
-  shipMat.depthWrite = false;
-  {
-    // alpha encodes material: ~0.5 = sailcloth, 1 = hull/mast/rigging
-    const a = texture(shipTex).a;
-    shipMat.colorNode = mix(uSail, uShip, smoothstep(0.62, 0.92, a));
-    shipMat.opacityNode = smoothstep(0.12, 0.45, a);
-  }
-  const SHIP_LEN = 15;
-  const ship = new THREE.Mesh(
-    new THREE.PlaneGeometry(SHIP_LEN, SHIP_LEN * (SHIP_H / SHIP_W)),
-    shipMat,
-  );
-  ship.renderOrder = 10;
-  scene.add(ship);
+  /* ── the brig + skiff (real Blender GLBs, floated on the surface) ── */
+  let brig: THREE.Object3D | null = null;
+  let skiff: THREE.Object3D | null = null;
 
-  /* ── palette / voyage state ── */
-  const lerpHex = (a: number, b: number, t: number) =>
-    new THREE.Color(a).lerp(new THREE.Color(b), t);
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  await new Promise<void>((resolve) => {
+    loader.load(
+      '/assets/sea/sea_assets.glb',
+      (gltf) => {
+        gltf.scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          // unlit material reading the baked vertex colour (warm back-lit
+          // ink), hazed toward the warm horizon with distance so the
+          // silhouette sits IN the air rather than being cut out of it.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const a: any = attribute('color');
+          const mat = new THREE.MeshBasicNodeMaterial();
+          const dist = length(positionWorld.sub(cameraPosition));
+          const haze = smoothstep(40.0, 220.0, dist).mul(0.55);
+          mat.colorNode = vec4(mix(a.rgb, uGold, haze), 1);
+          mesh.material = mat;
+          mesh.renderOrder = 5;
+        });
+        brig = gltf.scene.getObjectByName('Brig') ?? null;
+        skiff = gltf.scene.getObjectByName('Skiff') ?? null;
+        scene.add(gltf.scene);
+        resolve();
+      },
+      undefined,
+      () => resolve(), // the sea still stands without the ship
+    );
+  });
 
+  /* ── voyage state ── */
   let voyage = 0;
-
   function applyVoyage(t: number) {
-    const a = GOLDEN_SEA;
-    const b = DUSK_SEA;
-    (uZenith.value as THREE.Color).copy(lerpHex(a.zenith, b.zenith, t));
-    (uMid.value as THREE.Color).copy(lerpHex(a.mid, b.mid, t));
-    (uHorizon.value as THREE.Color).copy(lerpHex(a.horizon, b.horizon, t));
-    (uSunCore.value as THREE.Color).copy(lerpHex(a.sunCore, b.sunCore, t));
-    (uSunHalo.value as THREE.Color).copy(lerpHex(a.sunHalo, b.sunHalo, t));
-    (uWaterDeep.value as THREE.Color).copy(lerpHex(a.waterDeep, b.waterDeep, t));
-    (uWaterLift.value as THREE.Color).copy(lerpHex(a.waterLift, b.waterLift, t));
-    (uCrest.value as THREE.Color).copy(lerpHex(a.crest, b.crest, t));
-    (uSail.value as THREE.Color).copy(lerpHex(0xf2c98e, 0xd9885e, t));
+    const set = (u: ReturnType<typeof uniform>, a: number[], b: number[]) =>
+      (u.value as THREE.Vector3).set(...lerp3(a, b, t));
+    set(uSunCore, GOLDEN.sunCore, DUSK.sunCore);
+    set(uGold, GOLDEN.gold, DUSK.gold);
+    set(uOrange, GOLDEN.orange, DUSK.orange);
+    set(uSalmon, GOLDEN.salmon, DUSK.salmon);
+    set(uTurq, GOLDEN.turq, DUSK.turq);
+    set(uZenith, GOLDEN.zenith, DUSK.zenith);
+    set(uCloudLit, GOLDEN.cloudLit, DUSK.cloudLit);
+    set(uCloudShade, GOLDEN.cloudShade, DUSK.cloudShade);
+    set(uDeep, GOLDEN.deep, DUSK.deep);
+    set(uSSS, GOLDEN.sss, DUSK.sss);
 
-    const sunY = a.sunY + (b.sunY - a.sunY) * t;
-    (uSunPos.value as THREE.Vector2).set(0.56, 0.5 + sunY);
-    // azimuth matches the painted sun disc (uv 0.56 on the sky plane)
-    (uSunDir.value as THREE.Vector3)
-      .set(0.185, Math.max(sunY, 0.012) * 1.1 + 0.03, -1)
-      .normalize();
+    const sunY = lerp(GOLDEN.sunY, DUSK.sunY, t);
+    (uSunDir.value as THREE.Vector3).set(-0.34, Math.max(sunY, 0.012), -1).normalize();
 
     // the gold-out: the sun blooms as the voyage ends
     const bloom = smoothstepJs(0.72, 1, t);
-    uSunIntensity.value =
-      (a.sunIntensity + (b.sunIntensity - a.sunIntensity) * t) *
-      (1 + bloom * 1.1);
+    uSunGain.value = 1 + bloom * 2.4;
 
-    renderer.setClearColor((uZenith.value as THREE.Color).getHex(), 1);
+    renderer.setClearColor(0x10101a, 1);
   }
-
-  function smoothstepJs(e0: number, e1: number, x: number): number {
-    const u = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1);
-    return u * u * (3 - 2 * u);
-  }
-
   applyVoyage(0);
 
   /* ── the painting (no lens — the sea's hand is the light) ── */
@@ -503,23 +362,17 @@ export async function mountSea(
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-
-    const skyH = 2 * (SKY_DIST + 14) * Math.tan(THREE.MathUtils.degToRad(CAM_FOV / 2)) * 1.3;
-    const skyW = skyH * camera.aspect * 1.3;
-    skyMesh.scale.set(skyW, skyH, 1);
-    uSkyAspect.value = skyW / skyH;
   }
   fit();
   window.addEventListener('resize', fit);
 
-  /* ── pointer: parallax + the brush of light on the water ── */
+  /* ── pointer: parallax + the brush of light ── */
   const pointer = new THREE.Vector2(0, 0);
   let pointerOnWater: THREE.Vector3 | null = null;
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hit = new THREE.Vector3();
-
   function onPointerMove(e: PointerEvent) {
     const px = e.clientX / window.innerWidth;
     const py = e.clientY / window.innerHeight;
@@ -531,19 +384,16 @@ export async function mountSea(
   window.addEventListener('pointermove', onPointerMove, { passive: true });
 
   function paintTrail() {
-    // the old light sinks back into the sea
     trailCtx.globalCompositeOperation = 'source-over';
-    trailCtx.fillStyle = 'rgba(0,0,0,0.045)';
+    trailCtx.fillStyle = 'rgba(0,0,0,0.04)';
     trailCtx.fillRect(0, 0, TRAIL_RES, TRAIL_RES);
-
     if (pointerOnWater) {
       const u = (pointerOnWater.x + TRAIL_X) / (TRAIL_X * 2);
       const v = (pointerOnWater.z - TRAIL_Z0) / (TRAIL_Z1 - TRAIL_Z0);
       if (u > 0 && u < 1 && v > 0 && v < 1) {
         const cx = u * TRAIL_RES;
         const cy = v * TRAIL_RES;
-        // brush size grows with distance so the light reads constant
-        const r = 5 + (1 - v) * 13;
+        const r = 6 + (1 - v) * 16;
         const g = trailCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
         g.addColorStop(0, 'rgba(255,255,255,0.5)');
         g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -557,39 +407,73 @@ export async function mountSea(
     trailTex.needsUpdate = true;
   }
 
+  /* ── honest buoyancy: float an object on the summed cascades ── */
+  const ht = { x: 0, z: 0 };
+  function seaHeight(x: number, z: number, t: number): number {
+    return swell.heightAt(x, z, t) + detail.heightAt(x, z, t);
+  }
+  function seaSlope(x: number, z: number, t: number, out: { x: number; z: number }) {
+    const a = { x: 0, z: 0 };
+    swell.slopeAt(x, z, t, a);
+    const b = { x: 0, z: 0 };
+    detail.slopeAt(x, z, t, b);
+    out.x = a.x + b.x;
+    out.z = a.z + b.z;
+  }
+
+  function floatObject(
+    obj: THREE.Object3D, x: number, z: number, t: number,
+    draft: number, headingY: number,
+  ) {
+    const h = seaHeight(x, z, t);
+    obj.position.set(x, h + draft, z);
+    seaSlope(x, z, t, ht);
+    // pitch about x from along-track slope, roll about z from cross slope
+    obj.rotation.set(
+      Math.atan(ht.z) * 0.5,        // pitch with z-slope
+      headingY,
+      Math.atan(ht.x) * -0.5 + Math.sin(t * 0.3) * 0.01, // roll
+    );
+  }
+
   /* ── loop ── */
-  let last = performance.now();
   let firstFrame = true;
+  let computing = false;
+  const TIME_SCALE = 0.9;
 
   function loop(now: number) {
-    const dt = Math.min((now - last) / 1000, 0.05);
-    last = now;
-    void dt;
-
     const t = (now / 1000) * TIME_SCALE;
-    uTime.value = t;
 
+    if (!computing) {
+      computing = true;
+      Promise.all([swell.update(t), detail.update(t)]).then(() => {
+        computing = false;
+      });
+    }
     paintTrail();
 
-    /* the voyage: the ship sails out of the far light toward us */
+    // the voyage: the brig sails out of the far light toward us
     const sail = smoothstepJs(0, 1, voyage);
-    const sx = 30 + (-14 - 30) * sail;
-    const sz = -120 + (-30 - -120) * sail;
-    const draft = 1.9 + sail * 0.5; // keeps the hull seated as it nears
-    const bob = waveHeightAt(sx, -sz, t);
-    ship.position.set(sx, bob * 0.55 + draft, sz);
-    // pitch with the local slope, roll with a slow breath
-    const ahead = waveHeightAt(sx - 4, -sz, t);
-    const astern = waveHeightAt(sx + 4, -sz, t);
-    ship.rotation.z =
-      Math.atan2(astern - ahead, 8) * 0.55 + Math.sin(now * 0.00037) * 0.012;
+    if (brig) {
+      const bx = lerp(26, -10, sail);
+      const bz = lerp(-150, -34, sail);
+      floatObject(brig, bx, bz, t, 0.2, Math.PI * 0.5 - sail * 0.3);
+      const s = lerp(1.0, 1.25, sail);
+      brig.scale.setScalar(s);
+    }
+    if (skiff) {
+      // the skiff rides the lower-right foreground throughout
+      floatObject(skiff, 18 - sail * 4, -26 - sail * 2, t, 0.05, -0.5);
+      skiff.scale.setScalar(0.9);
+    }
 
-    /* camera: leans with the pointer, sinks toward the water as dusk falls */
-    const camY = 5.2 - sail * 1.1;
-    const camX = -sail * 2.6;
+    // camera leans with the pointer, sinks toward the water as dusk falls
+    const camY = 3.6 - sail * 0.9;
+    const camX = -sail * 2.2;
     camera.position.x += (camX + pointer.x * 0.8 - camera.position.x) * 0.04;
     camera.position.y += (camY + pointer.y * -0.3 - camera.position.y) * 0.04;
-    camera.lookAt(camera.position.x * 0.55, 2.4, -SKY_DIST);
+    camera.lookAt(camera.position.x * 0.5, 1.6, -160);
+    sky.position.copy(camera.position);
 
     painting.render();
 
@@ -600,10 +484,8 @@ export async function mountSea(
   }
   renderer.setAnimationLoop(loop);
 
-  /* pause while off-screen */
   const io = new IntersectionObserver(([entry]) => {
     renderer.setAnimationLoop(entry?.isIntersecting ? loop : null);
-    if (entry?.isIntersecting) last = performance.now();
   });
   io.observe(canvas);
 
@@ -617,9 +499,10 @@ export async function mountSea(
       window.removeEventListener('resize', fit);
       window.removeEventListener('pointermove', onPointerMove);
       renderer.setAnimationLoop(null);
-      shipTex.dispose();
       trailTex.dispose();
-      waterGeo.dispose();
+      tileGeo.dispose();
+      swell.dispose();
+      detail.dispose();
       painting.dispose();
       renderer.dispose();
     },
