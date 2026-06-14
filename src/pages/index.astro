@@ -24,6 +24,33 @@ const description =
     })();
   </script>
 
+  <!-- Act 0 opens at a museum wall: his favourite painting, framed.
+       Scrolling pushes the camera through the canvas into the living
+       summit (src/scenes/threshold.ts). In the catalogue this is simply
+       the framed plate at the top of the page. -->
+  <section class="threshold" id="threshold" aria-label="Through the frame — Wanderer above the Sea of Fog">
+    <div class="gallery" aria-hidden="true"></div>
+    <figure class="artframe">
+      <div class="art-mat">
+        <img
+          class="art"
+          src="/assets/paintings/wanderer_overview.webp"
+          width="5256"
+          height="6742"
+          fetchpriority="high"
+          decoding="async"
+          alt="Wanderer above the Sea of Fog by Caspar David Friedrich: a man in a dark coat stands on a rocky summit, his back to us, gazing across a sea of fog toward distant mountains."
+        />
+      </div>
+      <figcaption class="plate">
+        <span class="plate-artist mono-label">Caspar David Friedrich</span>
+        <span class="plate-title">Wanderer above the Sea of Fog</span>
+        <span class="plate-meta mono-label">Oil on canvas · 1818 · the painting Mattis carries</span>
+      </figcaption>
+      <span class="threshold-cue mono-label" aria-hidden="true">Scroll to step inside</span>
+    </figure>
+  </section>
+
   <div class="descent-track" id="descent-track">
     <header class="hero" data-scene>
       <canvas id="summit-canvas" aria-hidden="true"></canvas>
@@ -100,10 +127,19 @@ const description =
 </World>
 
 <style>
-  /* the scroll runway for the descent — only the full experience
-     gets the long sink; the catalogue reads straight through */
+  /* the scroll runway — one continuous act in the full experience:
+     the push through the painting, an establishing beat on the summit,
+     then the long sink into the white-out. The catalogue reads straight
+     through (threshold plate → name → about). */
   :global([data-mode='full']) .descent-track {
-    height: 280svh;
+    height: 460svh;
+  }
+
+  /* in the full journey the name arrives only once we step through the
+     canvas — the threshold timeline fades it in. (The loader covers
+     this first paint, so there is no flash.) The catalogue keeps it. */
+  :global([data-mode='full']) .frontispiece {
+    opacity: 0;
   }
 
   /* the painted fallback sky — also the LCP backdrop while the scene streams in */

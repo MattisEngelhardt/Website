@@ -9,6 +9,8 @@ import '@fontsource-variable/fraunces/full.css';
 import '@fontsource-variable/fraunces/full-italic.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
+// the signature loader's hand — an elegant script for "Mattis E."
+import '@fontsource/allura/400.css';
 import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import PathNav from '../components/PathNav.astro';
@@ -54,6 +56,26 @@ const personSchema = {
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#14121f" />
 
+    <!-- arm the signature loader before first paint: only the first
+         visit of a session, never reduced-motion / save-data / no-JS.
+         CSS keeps the loader hidden unless <html data-loading>. -->
+    <script is:inline>
+      (() => {
+        try {
+          const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+          const conn = navigator.connection;
+          const seen = sessionStorage.getItem('seen-signature');
+          if (!rm && !(conn && conn.saveData) && !seen) {
+            document.documentElement.dataset.loading = '1';
+            // failsafe: never trap the visitor if the module never runs
+            setTimeout(() => document.documentElement.removeAttribute('data-loading'), 6000);
+          }
+        } catch (e) {
+          /* no storage / matchMedia — just skip the loader */
+        }
+      })();
+    </script>
+
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -98,8 +120,36 @@ const personSchema = {
       </div>
     </div>
 
+    <!-- The signature loader: "Mattis E.", written by hand. Persisted
+         so it survives the first swap; armed only on first visit. -->
+    <div
+      class="signature-loader"
+      id="signature-loader"
+      aria-hidden="true"
+      transition:persist="signature"
+    >
+      <div class="sig">
+        <span class="sig-word">Mattis E.</span>
+        <svg
+          class="sig-flourish-svg"
+          viewBox="0 0 1000 360"
+          fill="none"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          <path
+            class="sig-flourish"
+            pathLength="1"
+            d="M 690 214 C 654 286 470 318 300 312 C 196 308 150 296 150 276 C 150 262 168 256 196 264"
+          ></path>
+        </svg>
+      </div>
+    </div>
+
     <script>
       import { initPassage } from '../lib/passage';
+      import { playSignature } from '../lib/signature';
+      void playSignature();
       initPassage();
     </script>
   </body>

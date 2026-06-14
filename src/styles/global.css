@@ -231,6 +231,118 @@ a:hover {
   opacity: 0.85;
 }
 
+/* ── The Threshold — Act 0 opens "through the frame" ───────────────
+   A museum wall holding his favourite painting. In the full journey
+   src/scenes/threshold.ts pins this as a fixed overlay and pushes the
+   camera through the canvas into the living summit; the catalogue and
+   no-JS reads show it as a static framed plate at the top.          */
+
+.threshold {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 88svh;
+  padding: clamp(2.5rem, 7vh, 6rem) var(--gutter);
+  background: radial-gradient(130% 90% at 50% 36%, #20222e 0%, #131419 58%, #0b0c10 100%);
+  overflow: hidden;
+}
+
+/* full mode: a fixed overlay JS drives + dissolves */
+[data-mode='full'] .threshold {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  min-height: 0;
+  height: 100svh;
+  padding: 0;
+  /* purely the scroll-driven overlay — never intercept the journey */
+  pointer-events: none;
+  will-change: opacity, filter;
+}
+
+.gallery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(58% 48% at 50% 30%, rgb(255 247 232 / 0.13), transparent 72%);
+  mix-blend-mode: screen;
+}
+
+.artframe {
+  position: relative;
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: clamp(1.1rem, 3vh, 2.1rem);
+  transform-origin: center;
+  will-change: transform;
+  perspective: 1500px;
+}
+
+.art-mat {
+  /* the gilt frame + cream mat around the canvas */
+  padding: clamp(0.45rem, 1.3vh, 1rem);
+  background: linear-gradient(150deg, #f4ecd8 0%, #e4d6b6 50%, #cdb98f 100%);
+  border-style: solid;
+  border-width: clamp(0.55rem, 1.7vh, 1.4rem);
+  border-image: linear-gradient(135deg, #caa55c 0%, #6f5526 34%, #e3c886 58%, #7c5f2d 100%) 1;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 46px 100px -34px rgb(0 0 0 / 0.85),
+    0 8px 24px rgb(0 0 0 / 0.55);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.art {
+  display: block;
+  height: min(64svh, 116vw); /* portrait fit; width ≈ 0.78·height */
+  width: auto;
+  max-width: 86vw;
+}
+
+.plate {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  color: var(--c-haze);
+}
+
+.plate-artist { opacity: 0.7; letter-spacing: 0.22em; }
+.plate-title {
+  font-style: italic;
+  font-size: var(--text-lede);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 1;
+  opacity: 0.95;
+}
+.plate-meta {
+  opacity: 0.5;
+  text-transform: none;
+  letter-spacing: 0.1em;
+}
+
+/* the scroll cue only means anything in the scrolling full experience */
+.threshold-cue { display: none; }
+[data-mode='full'] .threshold-cue {
+  display: block;
+  position: absolute;
+  bottom: clamp(2rem, 5vh, 3.5rem);
+  left: 50%;
+  translate: -50% 0;
+  opacity: 0.6;
+  animation: cue-breathe 3s var(--ease-journey) infinite;
+}
+
+@keyframes cue-breathe {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .threshold-cue { animation: none; }
+}
+
 /* ── Die Passage — the painted veil between worlds ──────────────────
    Three brush strokes in the destination's palette sweep across the
    frame; the swap happens behind full cover while a chapter plate
@@ -367,3 +479,94 @@ a:hover {
   background: linear-gradient(125deg, var(--c-canvas) 30%, var(--c-sun));
 }
 .passage[data-to='horizon'] .passage-plate { color: var(--c-ink); }
+
+/* ── The Signature loader — "Mattis E.", written by hand ────────────
+   The first breath: the name draws itself in script, the E sweeps back
+   and underlines the whole word, then the sheet lifts to the museum.
+   Hidden unless armed (html[data-loading]) — see World.astro; the
+   drawing is pure CSS, src/lib/signature.ts only times the lift.    */
+
+.signature-loader {
+  display: none;
+}
+
+html[data-loading] .signature-loader {
+  display: grid;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  place-items: center;
+  background: radial-gradient(125% 100% at 50% 42%, #181922 0%, #0b0c10 72%);
+  color: var(--c-canvas);
+}
+
+.sig {
+  position: relative;
+  width: min(80vw, 660px);
+  aspect-ratio: 1000 / 360;
+  display: grid;
+  place-items: center;
+}
+
+.sig-word {
+  font-family: 'Allura', cursive;
+  font-weight: 400;
+  font-size: clamp(4.5rem, 17vw, 9.5rem);
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  /* paint a warm light into the ink stroke */
+  background: linear-gradient(100deg, #fff4dd 0%, var(--c-canvas) 45%, #f0e3c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 34px rgb(255 224 160 / 0.16));
+  /* hidden until written (kept off-screen on the left so the ink edge
+     reveals letters one after another, like a pen crossing the page) */
+  clip-path: inset(0 100% -18% -14%);
+}
+
+.signature-loader.writing .sig-word {
+  animation: sig-write 1.85s var(--ease-arrive) forwards;
+}
+
+@keyframes sig-write {
+  from { clip-path: inset(0 100% -18% -14%); }
+  to   { clip-path: inset(0 -12% -18% -14%); }
+}
+
+.sig-flourish-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.sig-flourish {
+  stroke: #f3e6c8;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 2px 22px rgb(255 224 160 / 0.22));
+}
+
+.signature-loader.writing .sig-flourish {
+  animation: sig-stroke 1.05s var(--ease-journey) 1.5s forwards;
+}
+
+@keyframes sig-stroke {
+  to { stroke-dashoffset: 0; }
+}
+
+/* the sheet rises away, unveiling the museum */
+.signature-loader.done {
+  opacity: 0;
+  transform: translateY(-1.5%) scale(1.012);
+  transition:
+    opacity var(--t-breath) var(--ease-arrive),
+    transform var(--t-breath) var(--ease-arrive);
+  pointer-events: none;
+}
