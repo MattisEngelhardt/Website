@@ -1,40 +1,102 @@
 ---
 /**
- * Act III — The Way. The human: the Camino, the photographs, the
- * mother. Photo treatment + parallax walk land on Day 9.
+ * Act III — The Way. The human chapter: the Camino Portugués, walked
+ * with his mother, flown as a cinematic satellite pass over the real
+ * route (Copernicus terrain + Sentinel-2 drape). The flight is
+ * scroll-driven; the full text lives below (real HTML, SEO). Scene
+ * logic mounts via die Passage (src/worlds/camino.ts).
  */
 import World from '../layouts/World.astro';
 
 const title = 'The Way — Mattis Engelhardt on the Camino';
 const description =
-  'Act III: the Camino de Santiago, walked with his mother. Real photographs hang in a painted landscape — windows of reality. What the way teaches about how he works.';
+  'Act III: a cinematic flyover of the Camino Portugués from Porto to Santiago de Compostela, walked with his mother — real terrain, real satellite earth. What the way teaches about how he works.';
+
+const stations = [
+  'Porto', 'Vila do Conde', 'Fão', 'Viana do Castelo', 'Vila Praia de Âncora',
+  'Vila Nova de Cerveira', 'Valença', 'Tui', 'O Porriño', 'Redondela',
+  'Pontevedra', 'Caldas de Reis', 'Padrón', 'Santiago de Compostela',
+];
 ---
 
 <World title={title} description={description} world="camino">
-  <header class="act">
-    <p class="mono-label">Act III — The Way</p>
-    <h1>One step. Then another.</h1>
-    <p class="lede">
-      He walked the Camino de Santiago with his mother. No sprint, no
-      shortcut — just the next waymark, every day, until the sea.
-    </p>
-  </header>
+  <div class="flyover-track" id="flyover-track">
+    <header class="hero" data-scene>
+      <canvas id="camino-canvas" aria-hidden="true"></canvas>
 
-  <section class="act" aria-label="What the way teaches">
-    <h2>What the way teaches</h2>
-    <p>
-      It is the same discipline he builds with: break the impossible
-      distance into steps you can actually take today. Ship the step.
-      Trust the accumulation.
-    </p>
-    <p>
-      Along this path hang his real photographs — the Camino, Montenegro,
-      Bavaria — windows of unpainted reality inside the painted world.
-    </p>
-    <!-- TODO(Mattis): travel photos (Camino, Montenegro, Bavaria) — the peak shots -->
+      <div class="frontispiece">
+        <p class="mono-label">Act III — The Way</p>
+        <h1>One step. Then another.</h1>
+        <p class="tagline lede">
+          The Camino Portugués, Porto to Santiago — two hundred and forty
+          kilometres he walked with his mother, one waymark at a time.
+        </p>
+      </div>
+
+      <a class="descend mono-label" href="#way">
+        <span>Walk the way</span>
+        <span class="descend-line" aria-hidden="true"></span>
+      </a>
+
+      <!-- the town currently underneath the flight (live, from the route data) -->
+      <p class="waymark" aria-hidden="true"></p>
+
+      <!-- waymark captions — the meaning of the way; true text is below -->
+      <p class="caption c1 lede" aria-hidden="true">
+        No sprint, no shortcut — just the next waymark, every day.
+      </p>
+      <p class="caption c2 lede" aria-hidden="true">
+        Across the Minho into Galicia: the impossible distance, broken
+        into steps you can actually take today.
+      </p>
+      <p class="caption c3 lede" aria-hidden="true">
+        Ship the step. Trust the accumulation. The sea comes when it comes.
+      </p>
+
+      <!-- arrival: the warm gold-out resolving onto the page of the book -->
+      <div class="gold-veil" aria-hidden="true"></div>
+      <div class="page-veil" aria-hidden="true"></div>
+    </header>
+  </div>
+
+  <section id="way" class="paper" aria-label="The Camino">
+    <div class="act">
+      <p class="mono-label">The waymark</p>
+      <h2>What the way teaches</h2>
+      <p>
+        He walked the Camino Portugués with his mother — from Porto, up the
+        Atlantic coast, across the Minho into Galicia, and inland through the
+        green hills to Santiago de Compostela. No sprint, no shortcut: just
+        the next waymark, every day, until the cathedral.
+      </p>
+      <p>
+        It is the same discipline he builds with. Break the impossible
+        distance into steps you can actually take today. Ship the step.
+        Trust the accumulation. The way teaches that a long road is only
+        ever walked one step at a time — and that who you walk it with
+        matters as much as where it ends.
+      </p>
+    </div>
+
+    <div class="act">
+      <h2>The route</h2>
+      <ol class="route" aria-label="Stations from Porto to Santiago">
+        {stations.map((s) => <li>{s}</li>)}
+      </ol>
+      <!-- TODO(Mattis): his real Camino photographs — the peak shots — hang
+           here as windows of unpainted reality inside the flown world -->
+      <p class="windows-note mono-label" aria-hidden="true">
+        Photographs from the way — coming soon.
+      </p>
+    </div>
   </section>
 
   <footer class="act">
+    <p class="credits mono-label">
+      Terrain: Copernicus GLO-30 DEM (ESA). Imagery: Sentinel-2 cloudless ·
+      s2maps.eu by EOX IT Services GmbH (contains modified Copernicus Sentinel
+      data 2024) · CC&#8209;BY&#8209;4.0.
+    </p>
     <a class="onward" href="/horizon">
       <span class="mono-label">Continue the journey</span>
       <span class="onward-name">Act IV — The Horizon</span>
@@ -44,12 +106,131 @@ const description =
 
 <style>
   :global([data-world='camino']) {
-    background: linear-gradient(to bottom, #2e2c44, #6e6286 55%, #8a7488);
+    background: linear-gradient(to bottom, #1a2233, #4a5a4a 55%, #8a7a58);
   }
 
-  h1,
-  h2 {
+  /* the scroll runway of the flyover — catalogue readers walk straight through */
+  :global([data-mode='full']) .flyover-track {
+    height: 360svh;
+  }
+
+  /* painted fallback earth — also the LCP backdrop while the scene streams in */
+  .hero {
+    background: linear-gradient(
+      to bottom,
+      #d9a86a 0%,
+      #b88f5a 16%,
+      #5d6b4a 40%,
+      #3c4a39 72%,
+      #243024 100%
+    );
+  }
+
+  h1 {
+    text-shadow: 0 2px 44px rgb(20 18 31 / 0.5);
+  }
+
+  :global(#way) h2 {
+    color: var(--c-ink);
+  }
+
+  /* ── the live waymark: the town underneath the flight ── */
+  .waymark {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    z-index: 1;
+    margin: 0;
+    padding: 0.35rem 1.1rem;
+    opacity: 0;
+    transition: opacity 0.5s var(--ease-arrive, ease);
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-lede);
+    letter-spacing: 0.06em;
     color: var(--c-canvas);
+    text-shadow: 0 1px 20px rgb(20 18 31 / 0.8);
+    white-space: nowrap;
+  }
+
+  /* ── waymark captions, set like inscriptions on the land ── */
+  .caption {
+    position: absolute;
+    z-index: 1;
+    max-width: 26ch;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    color: var(--c-canvas);
+    text-shadow: 0 1px 24px rgb(20 18 31 / 0.7);
+  }
+
+  .c1 { left: clamp(1.5rem, 8vw, 9rem); top: 24%; }
+  .c2 { right: clamp(1.5rem, 7vw, 8rem); top: 28%; text-align: right; }
+  .c3 { left: clamp(1.5rem, 9vw, 10rem); bottom: 28%; }
+
+  :global([data-mode='catalog']) .caption,
+  :global([data-mode='catalog']) .waymark,
+  :global([data-mode='catalog']) .gold-veil,
+  :global([data-mode='catalog']) .page-veil {
+    display: none;
+  }
+
+  /* ── the gold-out, in two breaths: arrival glow, then the page ── */
+  .gold-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      120% 95% at 50% 46%,
+      #fff1cc 0%,
+      #ffce72 40%,
+      #e0954a 74%,
+      #b9683a 100%
+    );
+  }
+
+  .page-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+    background: var(--c-canvas);
+  }
+
+  /* ── the route list ── */
+  .route {
+    columns: 2;
+    column-gap: 2.5rem;
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--c-ink);
+  }
+
+  .route li {
+    margin-block: 0.2rem;
+    break-inside: avoid;
+  }
+
+  .windows-note {
+    margin-top: 1.4rem;
+    opacity: 0.7;
+  }
+
+  /* ── footer ── */
+  footer {
+    color: var(--c-canvas);
+  }
+
+  .credits {
+    max-width: 60ch;
+    opacity: 0.6;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    margin-bottom: 1.6rem;
   }
 
   .onward {

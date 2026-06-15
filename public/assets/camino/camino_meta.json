@@ -1,0 +1,90 @@
+{
+  "bbox": {
+    "lonMin": -8.95,
+    "latMin": 41.05,
+    "lonMax": -8.42,
+    "latMax": 42.95
+  },
+  "widthKm": 43.84524744523601,
+  "depthKm": 211.5080000000006,
+  "exaggeration": 3.6,
+  "elevMin": 0.0,
+  "elevMax": 851.7721557617188,
+  "stations": [
+    {
+      "name": "Porto",
+      "lon": -8.6109,
+      "lat": 41.1496
+    },
+    {
+      "name": "Vila do Conde",
+      "lon": -8.743,
+      "lat": 41.353
+    },
+    {
+      "name": "Fao",
+      "lon": -8.782,
+      "lat": 41.506
+    },
+    {
+      "name": "Antas",
+      "lon": -8.77,
+      "lat": 41.547
+    },
+    {
+      "name": "Viana do Castelo",
+      "lon": -8.8345,
+      "lat": 41.6918
+    },
+    {
+      "name": "Vila Praia de Ancora",
+      "lon": -8.868,
+      "lat": 41.815
+    },
+    {
+      "name": "Vila Nova de Cerveira",
+      "lon": -8.743,
+      "lat": 41.94
+    },
+    {
+      "name": "Valenca",
+      "lon": -8.645,
+      "lat": 42.027
+    },
+    {
+      "name": "Tui",
+      "lon": -8.644,
+      "lat": 42.047
+    },
+    {
+      "name": "O Porrino",
+      "lon": -8.619,
+      "lat": 42.161
+    },
+    {
+      "name": "Redondela",
+      "lon": -8.609,
+      "lat": 42.284
+    },
+    {
+      "name": "Pontevedra",
+      "lon": -8.6446,
+      "lat": 42.431
+    },
+    {
+      "name": "Caldas de Reis",
+      "lon": -8.642,
+      "lat": 42.605
+    },
+    {
+      "name": "Padron",
+      "lon": -8.661,
+      "lat": 42.739
+    },
+    {
+      "name": "Santiago de Compostela",
+      "lon": -8.5446,
+      "lat": 42.8806
+    }
+  ]
+}

@@ -48,6 +48,7 @@ const CONTROLLERS: Partial<Record<WorldName, () => Promise<WorldModule>>> = {
   summit: () => import('../worlds/summit'),
   sea: () => import('../worlds/sea'),
   city: () => import('../worlds/city'),
+  camino: () => import('../worlds/camino'),
 };
 const defaultController = (): Promise<WorldModule> => import('../worlds/common');
 

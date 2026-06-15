@@ -1,0 +1,23 @@
+{
+  "_comment": "Single source of truth for the Camino Portugues flyover geo-frame. Used by prep_dem.py (crop/resample), fetch_satellite.mjs (WMS bbox), camino_set.py (mesh extent), and src/scenes/camino.ts (station mapping). lat/lon in WGS84.",
+  "bbox": { "lonMin": -8.95, "latMin": 41.05, "lonMax": -8.42, "latMax": 42.95 },
+  "grid": { "w": 144, "h": 700 },
+  "exaggeration": 3.6,
+  "stations": [
+    { "name": "Porto",                 "lon": -8.6109, "lat": 41.1496 },
+    { "name": "Vila do Conde",         "lon": -8.7430, "lat": 41.3530 },
+    { "name": "Fao",                   "lon": -8.7820, "lat": 41.5060 },
+    { "name": "Antas",                 "lon": -8.7700, "lat": 41.5470 },
+    { "name": "Viana do Castelo",      "lon": -8.8345, "lat": 41.6918 },
+    { "name": "Vila Praia de Ancora",  "lon": -8.8680, "lat": 41.8150 },
+    { "name": "Vila Nova de Cerveira", "lon": -8.7430, "lat": 41.9400 },
+    { "name": "Valenca",               "lon": -8.6450, "lat": 42.0270 },
+    { "name": "Tui",                   "lon": -8.6440, "lat": 42.0470 },
+    { "name": "O Porrino",             "lon": -8.6190, "lat": 42.1610 },
+    { "name": "Redondela",             "lon": -8.6090, "lat": 42.2840 },
+    { "name": "Pontevedra",            "lon": -8.6446, "lat": 42.4310 },
+    { "name": "Caldas de Reis",        "lon": -8.6420, "lat": 42.6050 },
+    { "name": "Padron",                "lon": -8.6610, "lat": 42.7390 },
+    { "name": "Santiago de Compostela","lon": -8.5446, "lat": 42.8806 }
+  ]
+}
