@@ -1,0 +1,106 @@
+---
+// Dev-only spike for the Horizon volumetric cloud sea (Act IV finale).
+// Mounts the raymarched cloudscape full-screen and scrubs setHorizon(t) from ?t=,
+// with a live FPS overlay so the volumetric can be tuned on a real GPU.
+// Noindex, sitemap-filtered. Query:
+//   ?t=0..1  ?play  ?fov  ?sx ?sy ?sz (sun)  ?steps ?lsteps ?lstep (march)
+//   ?cs (scale) ?den (density) ?cut (coverage) ?sig ?sigl (extinction)
+//   ?g (anisotropy) ?pow (powder) ?top ?bot ?far  ?bloom  ?sky (sky-only debug)
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="data:," />
+    <title>dev/horizon — cloud-sea spike</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1a2236;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #hud {
+        position: fixed;
+        left: 12px;
+        top: 10px;
+        color: #ffe6c0;
+        font: 13px/1.5 monospace;
+        text-shadow: 0 1px 2px #000;
+        white-space: pre;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-scene><canvas id="stage"></canvas></div>
+    <div id="hud">booting…</div>
+    <script>
+      import { mountHorizon } from '../../scenes/horizon';
+
+      const params = new URLSearchParams(location.search);
+      const t0 = parseFloat(params.get('t') ?? '0.1');
+      const play = params.has('play');
+      const hud = document.getElementById('hud')!;
+      const canvas = document.getElementById('stage') as HTMLCanvasElement;
+
+      const handle = await mountHorizon(canvas);
+      if (!handle) {
+        hud.textContent = 'no WebGPU / load failed';
+      } else {
+        let t = t0;
+        handle.setHorizon(t);
+
+        // fps meter
+        let frames = 0,
+          last = performance.now(),
+          fps = 0;
+        function tick() {
+          frames++;
+          const now = performance.now();
+          if (now - last >= 500) {
+            fps = Math.round((frames * 1000) / (now - last));
+            frames = 0;
+            last = now;
+            hud.textContent =
+              `horizon cloud sea\n` +
+              `t = ${t.toFixed(3)}   FPS = ${fps}\n` +
+              `(?t=0..1 ?play ?steps ?lsteps ?cs ?den ?cut ?sig ?sigl ?g ?pow ?bloom)`;
+            (window as any).__horizonFps = fps;
+          }
+          if (play) {
+            t += 0.0012;
+            if (t > 1) t = 0;
+            handle!.setHorizon(t);
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
+        // arrow keys / wheel scrub
+        addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowRight') t = Math.min(1, t + 0.02);
+          if (e.key === 'ArrowLeft') t = Math.max(0, t - 0.02);
+          handle!.setHorizon(t);
+        });
+        addEventListener(
+          'wheel',
+          (e) => {
+            t = Math.min(1, Math.max(0, t + Math.sign(e.deltaY) * 0.01));
+            handle!.setHorizon(t);
+          },
+          { passive: true },
+        );
+      }
+    </script>
+  </body>
+</html>

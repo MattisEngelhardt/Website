@@ -1,38 +1,121 @@
 ---
 /**
- * Act IV — The Horizon. Above the clouds: contact, links, the
- * unwritten next world. Full treatment lands on Day 10.
+ * Act IV — The Horizon. The finale, and the close of the Friedrich loop: above
+ * the clouds at golden hour, the Sea of Fog from Act 0 turned to gold beneath
+ * the wanderer's feet, the way ahead open. A scroll-driven flight over a
+ * physically-lit volumetric cloud sea resolves onto the contact page. Scene
+ * logic mounts via die Passage (src/worlds/horizon.ts).
  */
 import World from '../layouts/World.astro';
 
 const title = 'The Horizon — Contact Mattis Engelhardt';
 const description =
-  'Act IV: above the clouds. Get in touch with Mattis Engelhardt — the next world is unwritten.';
+  'Act IV: above the clouds at golden hour. Reach Mattis Engelhardt — student, AI builder, wanderer between worlds. The next world is unwritten.';
 ---
 
-<World title={title} description={description} world="horizon">
-  <header class="act">
-    <p class="mono-label">Act IV — The Horizon</p>
-    <h1>The next world is unwritten.</h1>
-    <p class="lede">
-      Golden hour above the clouds. No walls up here — just whatever
-      gets built next, and whoever builds it together.
-    </p>
-  </header>
+<World title={title} description={description} world="horizon" withPerson>
+  <div class="horizon-track" id="horizon-track">
+    <header class="hero" data-scene>
+      <canvas id="horizon-canvas" aria-hidden="true"></canvas>
 
-  <section class="act" aria-label="Contact">
-    <h2>Reach him</h2>
-    <p>
-      For collaborations, internships, startups, or a good conversation
-      about agents and long walks.
-    </p>
-    <!-- TODO(Mattis): confirm public email/contact route, GitHub + LinkedIn URLs, CV yes/no -->
-    <p class="mono-label">links land here on day 10</p>
+      <div class="frontispiece">
+        <p class="mono-label">Act IV — The Horizon</p>
+        <h1>The next world is unwritten.</h1>
+        <p class="tagline lede">
+          Golden hour, above the clouds. The Sea of Fog he stood over at the
+          beginning is beneath him now, turned to gold — and the way ahead is
+          open.
+        </p>
+      </div>
+
+      <a class="descend mono-label" href="#contact">
+        <span>Reach the horizon</span>
+        <span class="descend-line" aria-hidden="true"></span>
+      </a>
+
+      <!-- closing captions — the last words of the wander; true text is below -->
+      <p class="caption c1 lede" aria-hidden="true">
+        Every world was the same wanderer — between painting and code, study and
+        startup, pilgrimage and neon.
+      </p>
+      <p class="caption c2 lede" aria-hidden="true">
+        One walk, told as a begehbares Kunstwerk. The fog he once stood above is
+        beneath him now, and gold.
+      </p>
+      <p class="caption c3 lede" aria-hidden="true">
+        Whatever gets built next — and whoever builds it together.
+      </p>
+
+      <!-- arrival: the clouds open into the gold-out, then the page of the book -->
+      <div class="gold-veil" aria-hidden="true"></div>
+      <div class="page-veil" aria-hidden="true"></div>
+    </header>
+  </div>
+
+  <section id="contact" class="paper" aria-label="Contact">
+    <div class="act">
+      <p class="mono-label">The horizon</p>
+      <h2>The next world is unwritten</h2>
+      <p class="tag mono-label">
+        Building agents until all that's left to do is what I love.
+      </p>
+      <p>
+        Mattis Engelhardt — student at HfWU, AI builder, founder-minded. He builds
+        agents and multi-agent systems with Claude Code and Codex, walks long
+        roads one waymark at a time, and treats the gap between a painting and a
+        running program as a single landscape to cross.
+      </p>
+      <p>
+        For collaborations, internships, startups, or a long conversation about
+        agents and longer walks — the horizon is open.
+      </p>
+    </div>
+
+    <div class="act">
+      <h2>Reach him</h2>
+      <ul class="reach" aria-label="Links">
+        <li>
+          <a href="https://github.com/MattisEngelhardt" rel="me noopener" target="_blank">
+            <span class="reach-name">GitHub</span>
+            <span class="reach-sub mono-label">github.com/MattisEngelhardt</span>
+          </a>
+        </li>
+        <!-- TODO(Mattis): confirm public LinkedIn URL, contact email, CV (yes/no)
+             and replace the pending anchors below with live hrefs. -->
+        <li>
+          <a class="pending" href="#" aria-disabled="true">
+            <span class="reach-name">LinkedIn</span>
+            <span class="reach-sub mono-label">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="pending" href="#" aria-disabled="true">
+            <span class="reach-name">Email</span>
+            <span class="reach-sub mono-label">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="pending" href="#" aria-disabled="true">
+            <span class="reach-name">CV</span>
+            <span class="reach-sub mono-label">soon</span>
+          </a>
+        </li>
+      </ul>
+      <!-- TODO(Mattis): one of your own above-the-clouds photographs (Österreich
+           winter summit) hangs here as a final window of unpainted reality. -->
+      <p class="windows-note mono-label" aria-hidden="true">
+        A window of reality — above the clouds — coming soon.
+      </p>
+    </div>
   </section>
 
   <footer class="act">
+    <p class="credits mono-label">
+      Five worlds, one wander: the Summit, the Sea, the City of Agents, the Way,
+      the Horizon.
+    </p>
     <a class="onward" href="/">
-      <span class="mono-label">Return</span>
+      <span class="mono-label">Begin again</span>
       <span class="onward-name">Act 0 — The Summit</span>
     </a>
   </footer>
@@ -40,12 +123,141 @@ const description =
 
 <style>
   :global([data-world='horizon']) {
-    background: linear-gradient(to bottom, #4a5a86, #c97f4e 60%, #ffb45e);
+    background: linear-gradient(to bottom, #2a3a63, #b07a52 62%, #f0b25e);
+  }
+
+  /* the scroll runway of the flight — catalogue readers walk straight through */
+  :global([data-mode='full']) .horizon-track {
+    height: 320svh;
+  }
+
+  /* painted fallback sky — also the LCP backdrop while the scene streams in */
+  .hero {
+    background: linear-gradient(
+      to bottom,
+      #24305a 0%,
+      #4a5a86 26%,
+      #9a7e76 52%,
+      #d99f5e 78%,
+      #f3c06a 100%
+    );
+  }
+
+  h1 {
+    text-shadow: 0 2px 44px rgb(20 18 31 / 0.45);
+  }
+
+  :global(#contact) h2 {
     color: var(--c-ink);
   }
 
-  :global([data-world='horizon']) :is(h1, h2) {
+  .tag {
+    margin-bottom: 1rem;
+    opacity: 0.7;
+  }
+
+  /* ── closing captions, set like inscriptions over the sea ── */
+  .caption {
+    position: absolute;
+    z-index: 1;
+    max-width: 28ch;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    color: var(--c-canvas);
+    text-shadow: 0 1px 24px rgb(20 18 31 / 0.7);
+  }
+
+  .c1 { left: clamp(1.5rem, 8vw, 9rem); top: 26%; }
+  .c2 { right: clamp(1.5rem, 7vw, 8rem); top: 30%; text-align: right; }
+  .c3 { left: clamp(1.5rem, 9vw, 10rem); bottom: 30%; }
+
+  :global([data-mode='catalog']) .caption,
+  :global([data-mode='catalog']) .gold-veil,
+  :global([data-mode='catalog']) .page-veil {
+    display: none;
+  }
+
+  /* ── the gold-out, in two breaths: the clouds open, then the page ── */
+  .gold-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      120% 100% at 50% 44%,
+      #fff3d2 0%,
+      #ffd27a 38%,
+      #e89a4e 72%,
+      #c06e3c 100%
+    );
+  }
+
+  .page-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+    background: var(--c-canvas);
+  }
+
+  /* ── the reach list ── */
+  .reach {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .reach li {
+    border-top: 1px solid color-mix(in oklab, var(--c-ink) 18%, transparent);
+  }
+
+  .reach a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.8rem;
+    text-decoration: none;
     color: var(--c-ink);
+    transition: opacity 0.2s var(--ease-arrive, ease);
+  }
+
+  .reach-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 48, 'SOFT' 0, 'WONK' 1;
+  }
+
+  .reach a:not(.pending):hover .reach-name {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .reach a.pending {
+    pointer-events: none;
+    opacity: 0.45;
+  }
+
+  .windows-note {
+    margin-top: 1.6rem;
+    opacity: 0.6;
+  }
+
+  /* ── footer ── */
+  footer {
+    color: var(--c-canvas);
+  }
+
+  .credits {
+    max-width: 60ch;
+    opacity: 0.6;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    margin-bottom: 1.6rem;
   }
 
   .onward {
