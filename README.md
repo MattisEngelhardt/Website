@@ -12,7 +12,7 @@ Built in 12 days, in the open, together with Claude (Fable 5).
 |---|---|---|
 | 0 | `/` | The Summit — a living sea of fog, synced to your local time |
 | I | `/sea` | The Sea — who he is |
-| II | `/city` | The City of Agents — what he builds (incl. a real arcade) |
+| II | `/city` | The City — what he builds (incl. a real arcade) |
 | III | `/camino` | The Way — the human |
 | IV | `/horizon` | The Horizon — contact |
 

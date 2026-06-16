@@ -24,8 +24,8 @@ Du übernimmst „Der Wanderer" — die Awwwards-Level-Website über Mattis Enge
 | B · My Vacations (Galerie + Pipeline) | ⬜ | — | — |
 | C · Camino Blender-Bird's-Eye | ⬜ | — | — |
 | D · Das Boot (The Sea) | ⬜ | — | — |
-| E · Text-Purge | ⬜ | — | — |
-| F · Threshold-Zoom | ⬜ | — | — |
+| E · Text-Purge | 🟧 | Copy gepurged + dt. Leak-Bug raus + „City" statt „City of Agents" (alle user-facing Stellen + passage-Plakette); check 0 / build grün; verify-passage Katalog-Check auf neuen Sea-h1 angepasst & grün. **Offen:** Flavor-Captions strukturell entfernen (braucht worlds/{sea,city,horizon}.ts-Timeline + verify-{sea,city,horizon}.mjs) — final 1-Zeilen `TODO(Mattis)`. | 16.06. |
+| F · Threshold-Zoom | ✅ | `FOCAL_X 0.5→0.32`, `FOCAL_Y 0.455→0.5`, `SMAX 7.2→4.3`. verify-threshold PASS, 0 Errors; Side-by-side-Deep-Frame (Read) bestätigt: Push landet im Nebelmeer + Nebelbergen der linken Hälfte (Wanderer als Repoussoir rechts), scharf, sanft — nicht „in die Borsten". Threshold = reine CSS-Transform → 60fps. | 16.06. |
 
 ---
 

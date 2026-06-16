@@ -256,6 +256,16 @@ Der letzte unfertige Akt war ein flacher CSS-Gradient + Textliste (genau die kri
 5. **Domain-Entscheidung** (Empfehlung: mattisengelhardt.com, ~10 €/Jahr) — `site` in astro.config.mjs danach anpassen
 6. ~~`gh auth login` / Repo~~ ✅ Repo läuft (`MattisEngelhardt/Website`) — offen nur noch: Cloudflare-Pages im Dashboard mit dem Repo verbinden (Build: `npm run build`, Output `dist`, env `NODE_OPTIONS=--use-system-ca` NICHT nötig in CF)
 
+## Tag 11 (16.06.) — Krise #2, Phase 1 (Quick Wins): Workstream F (Threshold-Zoom) ✅ + E (Text-Purge) 🟧
+
+Start der Krise-#2-Roadmap (MAINPLAN.md §14). Phase 1 = klein/sichtbar/risikoarm.
+
+- **F · Threshold-Zoom (`src/scenes/threshold.ts`) — fertig+verifiziert.** Konstanten: `FOCAL_X 0.5→0.32`, `FOCAL_Y 0.455→0.5`, `SMAX 7.2→4.3`. Effekt (per Deep-Frame-Read bestätigt): der Push landet jetzt im **Nebelmeer + den Nebelbergen der linken Bildhälfte** (Wanderer steht als Repoussoir am rechten Rand) statt frontal in den dunklen Mantel zu rammen; SMAX 4.3 hält's scharf + sanft. verify-threshold PASS, 0 Errors. Threshold ist reine CSS-Transform auf ein decodiertes `<img>` → 60fps trivial.
+- **E · Text-Purge — Copy gepurged, struktureller Caption-Cut offen.** Erledigt (nur Edit/Write, kein PS-Replace): `index.astro` Intro-h2 + 4 `world-line`-Sprüche → ehrliche 1-Zeiler (Sea „Who he is." · City „What he builds." · Camino „Where he walked." · Horizon „What's next."); Sea/City/Horizon Frontispiz-h1 entkitscht; **deutscher Leak „begehbares Kunstwerk" raus** (horizon.astro Caption — war ein echter Bug); **„The City of Agents" → „The City"** an ALLEN user-facing Stellen: `index.astro`, `city/index.astro` (title+mono-label), `sea.astro` onward, `horizon.astro` credits, `Record.astro` Breadcrumb, `README.md` **und `passage.ts` WORLDS.city.name** (letztere wird in der Übergangs-Plakette gezeigt: `WORLDS[to].name` → `.passage-name`). Flavor-Captions vorerst nur **in-place entkitscht** (Text gekürzt/ehrlicher), NICHT strukturell entfernt.
+  - ⚠️ **WICHTIG für den Caption-Cut:** die `.c1/.c2/.c3`-Captions sind KEIN reiner Copy-Edit — sie werden (a) von den Welt-Controllern `worlds/{sea,city,horizon}.ts` per Scroll-Timeline ein-/ausgeblendet und (b) von `verify-{sea,city,horizon}.mjs` auf Opacity geprüft (`c2 visible mid`, `c3 visible late`, `captions hidden in catalogue`). Wer sie ganz löschen will, muss Controller-Timeline + Verify-Checks mitziehen. Deshalb diese Session nur entkitscht, nicht gelöscht.
+  - **verify-passage.mjs angepasst:** Sea-h1-Assertion `'water remembers'` → `'Who he is'` (2 Stellen: full-mode + catalogue). Catalogue-Check grün. Der `full mode`-Fail (`.descend` click-timeout) ist der in brain.md/HANDOFF dokumentierte **PRE-EXISTING Headless-Remount-Flake** — KEINE Regression (meine Edits berühren weder Summit-Timeline noch Descend-Logik; Copy-/CSS-Param-Änderungen können `.descend`-Visibility nicht beeinflussen).
+- **Doktrin-Notiz:** finale 1-Zeilen pro Welt sind weiterhin `TODO(Mattis)` (MAINPLAN §15) — die gesetzten Lines sind die §8-Vorschläge, jederzeit billig umtauschbar.
+
 ## Design-Prinzipien (aus Recherche, nie vergessen)
 
 - Awwwards-Gewinner 2026: Zurückhaltung > Spektakel; Effekte nur, wo sie die Geschichte tragen; Performance wird mitbewertet (Budget: LCP < 2s, initiales JS < 150 KB, 60fps)

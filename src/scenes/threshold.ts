@@ -19,13 +19,18 @@
  *   p PUSH_END .. 1  — the canvas dissolves, unveiling the live world
  */
 
-/** the point in the painting we push through: the wanderer + the
- *  luminous mist just beyond him (normalised within the <img>). */
-const FOCAL_X = 0.5;
-const FOCAL_Y = 0.455;
+/** the point in the painting we push through. Not the wanderer himself
+ *  (pushing into his coat read as "into the bristles") but the luminous
+ *  sea of fog to his left — the mist and the rock peaks emerging from
+ *  it, which is the world the journey actually opens into. Normalised
+ *  within the <img>. */
+const FOCAL_X = 0.32;
+const FOCAL_Y = 0.5;
 
-/** scale, relative to the museum layout size, at the deepest push */
-const SMAX = 7.2;
+/** scale, relative to the museum layout size, at the deepest push.
+ *  Kept gentle — a soft drift into the mist, not a hard ram into the
+ *  paint surface (Mattis, Krise #2: "sanfter, nicht in die Borsten"). */
+const SMAX = 4.3;
 /** progress at which the zoom is done and the dissolve begins */
 const PUSH_END = 0.84;
 

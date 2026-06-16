@@ -38,7 +38,7 @@ type WorldName = 'summit' | 'sea' | 'city' | 'camino' | 'horizon';
 const WORLDS: Record<WorldName, { act: string; name: string; index: number }> = {
   summit: { act: 'Act 0', name: 'The Summit', index: 0 },
   sea: { act: 'Act I', name: 'The Sea', index: 1 },
-  city: { act: 'Act II', name: 'The City of Agents', index: 2 },
+  city: { act: 'Act II', name: 'The City', index: 2 },
   camino: { act: 'Act III', name: 'The Way', index: 3 },
   horizon: { act: 'Act IV', name: 'The Horizon', index: 4 },
 };

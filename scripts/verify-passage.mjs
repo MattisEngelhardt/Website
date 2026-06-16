@@ -75,7 +75,7 @@ try {
   check('arrived in sea world', sea.world === 'sea', JSON.stringify(sea));
   check('data-mode survived the swap', sea.mode === 'full');
   check('data-daypart survived the swap', !!sea.daypart);
-  check('sea content is real', sea.h1.includes('water remembers'));
+  check('sea content is real', sea.h1.includes('Who he is'));
   await page.waitForSelector('.hero.is-live', { timeout: 25_000 });
   check('sea scene mounted after swap (is-live)', true);
   await page.screenshot({ path: `${outDir}/passage-sea.png` });
@@ -176,7 +176,7 @@ try {
     sceneLive: !!document.querySelector('.hero.is-live'),
     h1: document.querySelector('h1')?.textContent ?? '',
   }));
-  check('catalogue navigated to sea', cat.world === 'sea' && cat.h1.includes('water remembers'));
+  check('catalogue navigated to sea', cat.world === 'sea' && cat.h1.includes('Who he is'));
   check('mode stayed catalog', cat.mode === 'catalog');
   check('veil never engaged', cat.veil === 'idle');
   check('no scene mounted', !cat.sceneLive);
