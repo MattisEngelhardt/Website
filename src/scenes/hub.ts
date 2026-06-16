@@ -21,12 +21,15 @@ import {
   attribute,
   cameraPosition,
   clamp,
-  exp,
   float,
+  Fn,
   length,
+  max,
   mix,
   mx_noise_float,
+  normalize,
   positionWorld,
+  pow,
   smoothstep,
   texture,
   time,
@@ -34,11 +37,12 @@ import {
   uv,
   vec2,
   vec3,
+  vec4,
 } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createPainting } from './painting';
-import { lerpPalette, fbm, drawWanderer } from './summit';
+import { lerpPalette, fbm } from './summit';
 
 /* ── the worlds that hang in the fog ──────────────────────────────────────
    pos is the plate centre in world space; the camera sits near origin looking
@@ -59,15 +63,19 @@ interface PlateDef extends HubPlate {
   w: number;
 }
 
+// Staged at four distinct depths/heights across the pan arc so the gaze
+// DISCOVERS them — not a row. Nearer = larger and lower; the deepest hangs
+// small and high, softened by aerial perspective. They float in the clear air
+// above the billowing sea, like Friedrich's distant ridges.
 const PLATE_DEFS: PlateDef[] = [
   { id: 'sea', name: 'The Sea', line: 'Who he is.', href: '/sea', numeral: 'I',
-    tex: '/assets/plates/sea.webp', pos: [-9.6, 0.7, -17], w: 9.6 },
+    tex: '/assets/plates/sea.webp', pos: [-11.5, 3.4, -15], w: 11.0 },
   { id: 'city', name: 'The City', line: 'What he builds.', href: '/city', numeral: 'II',
-    tex: '/assets/plates/city.webp', pos: [-3.4, 2.1, -24], w: 9.2 },
+    tex: '/assets/plates/city.webp', pos: [-2.0, 6.2, -27], w: 8.6 },
   { id: 'camino', name: 'The Way', line: 'Where he walked.', href: '/camino', numeral: 'III',
-    tex: '/assets/plates/camino.webp', pos: [4.2, 1.2, -22], w: 9.2 },
+    tex: '/assets/plates/camino.webp', pos: [6.6, 3.9, -21], w: 9.4 },
   { id: 'horizon', name: 'The Horizon', line: "What's next.", href: '/horizon', numeral: 'IV',
-    tex: '/assets/plates/horizon.webp', pos: [11.2, 2.7, -29], w: 10.0 },
+    tex: '/assets/plates/horizon.webp', pos: [13.5, 6.6, -33], w: 8.2 },
 ];
 
 /** projected screen position of a plate's placard anchor, for DOM overlay */
@@ -105,9 +113,8 @@ export interface HubHandle {
   dispose(): void;
 }
 
-const SKY_DIST = 70;
-const FOG_LAYERS = 7;
-const KUWAHARA_RADIUS = 4;
+const SKY_DIST = 300; // dome radius — encloses the whole fog sea
+const KUWAHARA_RADIUS = 4; // real geometry is cheap → the painterly pass gets its budget back
 const PLATE_RATIO = 2 / 3; // height / width (3:2 landscape)
 
 /* foreground outcrop (only the Outcrop mesh of summit.glb — the peaks/crags
@@ -115,8 +122,11 @@ const PLATE_RATIO = 2 / 3; // height / width (3:2 landscape)
    as a repoussoir and the rest is open fog. */
 /* same figure↔outcrop geometry as the approved Act 0, translated to the right
    edge so the wanderer is a repoussoir you have stepped past. */
-const TERRAIN_SCALE = 0.62;
-const TERRAIN_POS: [number, number, number] = [5.45, -7.96, -1.21];
+// the rock you stand on — first-person: enlarged, centred-low, running off the
+// bottom of the frame as a repoussoir (you stepped THROUGH the painting; the
+// figure is gone — you ARE the wanderer).
+const TERRAIN_SCALE = 1.5;
+const TERRAIN_POS: [number, number, number] = [0.5, -12.4, 3.6];
 
 export async function mountHub(
   canvas: HTMLCanvasElement,
@@ -128,20 +138,32 @@ export async function mountHub(
   } catch {
     return null;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
   const CAM_FOV = opts.fov ?? 55;
   const MAX_YAW = opts.maxYaw ?? 0.46;
+
+  // tuning knobs for the volumetric sea of fog (read from the spike URL)
+  const q = (k: string, d: number): number => {
+    const v = new URLSearchParams(window.location.search).get(k);
+    const n = v === null ? NaN : parseFloat(v);
+    return Number.isFinite(n) ? n : d;
+  };
+  // the raymarch is fragment-heavy and runs under Kuwahara → keep pixelRatio at
+  // 1.0 (the painterly pass hides it). Overridable via ?pr= on the spike.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q('pr', 1.0)));
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
     CAM_FOV,
     canvas.clientWidth / Math.max(canvas.clientHeight, 1),
     0.1,
-    160,
+    400, // the sea of fog recedes far before aerial-fading to the sky
   );
-  const EYE = new THREE.Vector3(0, 1.0, 10);
+  const EYE = new THREE.Vector3(0, q('ey', 4.6), q('ez', 10));
   camera.position.copy(EYE);
+  // you stand above the sea of fog and look down-and-across it: the billowing
+  // tops spread below, the canvases float in the clear air above toward the sun.
+  const BASE_PITCH = q('tilt', -0.15);
 
   /* ── palette uniforms (written on the CPU, synced to the clock) ── */
   const uZenith = uniform(new THREE.Color());
@@ -149,28 +171,72 @@ export async function mountHub(
   const uHorizon = uniform(new THREE.Color());
   const uSunCore = uniform(new THREE.Color());
   const uSunHalo = uniform(new THREE.Color());
-  const uSunPos = uniform(new THREE.Vector2(0.62, 0.2));
   const uSunIntensity = uniform(0.9);
-  const uSkyAspect = uniform(1.8);
   const uWind = uniform(new THREE.Vector2(0, 0));
   const uHaze = uniform(new THREE.Color(0x9aa7c4));
+  // world-space sun direction (low, to the right, into −Z): the warm light comes
+  // from the right; the gallery hangs to the left in the cooler air.
+  const uSunDir = uniform(
+    new THREE.Vector3(q('sdx', 0.36), q('sdy', 0.12), q('sdz', -1)).normalize(),
+  );
+  // the sea of fog is now REAL Blender geometry (assets/lobby/fog.glb) with a
+  // baked luminance gradient in vertex colour — the web only re-tints it per
+  // time of day and aerial-fades it to the sky. (The old fragment-heavy TSL
+  // raymarch read as thin haze at ~17fps and is gone.)
+  const uFogTint = uniform(new THREE.Color()); // day-cycle multiply over the baked colour
+  const uFogHaze = uniform(new THREE.Color()); // the sky colour the far fog dissolves into
+  const uFogNear = uniform(q('fnear', 85)); // aerial perspective onset (world units)
+  const uFogFar = uniform(q('ffar', 300)); // fully dissolved to sky by here
+  const uFogContrast = uniform(q('fcon', 1.7)); // crest/valley tonal spread (billow relief)
+  const uFrameTint = uniform(new THREE.Color()); // day-cycle warmth over the baked gilt
 
-  /* ── the sky (same gradient + tight sun as Act 0) ── */
+  /* the sky the fog sits in — hemispherical gradient + the low sun disc/glow,
+     all from the day-cycle palette. A cheap dome (no raymarch). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const skyColor: any = Fn(([rd]: any) => {
+    const up = clamp(rd.y, -1, 1);
+    const lower = mix(uHorizon, uMid, smoothstep(-0.05, 0.45, up));
+    let sky: any = mix(lower, uZenith, smoothstep(0.32, 0.95, up));
+    const cosS = clamp(rd.dot(uSunDir), -1, 1);
+    const disc = pow(max(cosS, 0), 1500).mul(uSunIntensity);
+    const glow = pow(max(cosS, 0), 42).mul(uSunIntensity).mul(0.4);
+    sky = sky.add(uSunCore.mul(disc)).add(uSunHalo.mul(glow));
+    return sky;
+  });
+
+  /* the environment dome carries the sky; it follows the camera each frame */
   const skyMat = new THREE.MeshBasicNodeMaterial();
+  skyMat.side = THREE.BackSide;
   {
-    const u = uv();
-    const lower = mix(uHorizon, uMid, smoothstep(0.0, 0.5, u.y));
-    const sky = mix(lower, uZenith, smoothstep(0.42, 1.0, u.y));
-    const d = length(u.sub(uSunPos).mul(vec2(uSkyAspect, 1)));
-    const core = exp(d.mul(-26.0)).mul(uSunIntensity);
-    const halo = exp(d.mul(-5.5)).mul(uSunIntensity).mul(0.55);
-    const grain = mx_noise_float(vec3(u.mul(3.0), time.mul(0.02))).mul(0.015);
-    skyMat.colorNode = sky.add(uSunCore.mul(core)).add(uSunHalo.mul(halo)).add(grain);
+    const rd = normalize(positionWorld.sub(cameraPosition));
+    const grain = mx_noise_float(vec3(rd.xy.mul(3.0), time.mul(0.02))).mul(0.012);
+    skyMat.colorNode = vec4(skyColor(rd).add(grain), 1);
   }
-  const skyMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), skyMat);
-  skyMesh.position.z = -SKY_DIST;
+  const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(SKY_DIST, 36, 18), skyMat);
   skyMesh.renderOrder = -10;
   scene.add(skyMesh);
+
+  /* ── the SEA OF FOG — real billowing Blender geometry (fog.glb) ───────────
+     Unlit vertex-colour (baked luminance: warm sun-lit crests, cool shadowed
+     valleys) × the day-cycle tint, then aerial-faded to the sky so the bank
+     recedes to a luminous infinity. Finished by the Kuwahara pass → a painted,
+     billowing Friedrich sea. Loaded below with the outcrop. */
+  const fogMats: THREE.Material[] = [];
+  const fogGeos: THREE.BufferGeometry[] = [];
+  function makeFogMaterial(): THREE.MeshBasicNodeMaterial {
+    const m = new THREE.MeshBasicNodeMaterial();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baked: any = attribute('color');
+    // boost the baked crest/valley contrast so the billows read as relief, then
+    // re-tint for the time of day.
+    const contrasted = baked.rgb.sub(0.5).mul(uFogContrast).add(0.5).max(vec3(0));
+    const tinted = contrasted.mul(uFogTint);
+    const dist = length(positionWorld.sub(cameraPosition));
+    const aer = smoothstep(uFogNear, uFogFar, dist);
+    m.colorNode = mix(tinted, uFogHaze, aer);
+    fogMats.push(m);
+    return m;
+  }
 
   /* ── the sea of fog ── */
   interface FogLayer {
@@ -209,26 +275,28 @@ export async function mountHub(
     scene.add(mesh);
     fogLayers.push({ mesh, color: uLayerColor, depth, baseY: 0 });
   }
-  for (let i = 0; i < FOG_LAYERS; i++) {
-    const depth = i / (FOG_LAYERS - 1);
-    addFogLayer(depth, -48 + depth * 42, 0.85 + depth * 0.7, i);
+  /* ── load the sea of fog (real billowing Blender geometry) ── */
+  let fogGroup: THREE.Group | null = null;
+  try {
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    const gltf = await loader.loadAsync('/assets/lobby/fog.glb');
+    fogGroup = gltf.scene;
+    fogGroup.scale.set(q('fgsx', 1), q('fgsy', 1), q('fgsz', 1));
+    fogGroup.position.set(q('fgx', 0), q('fgy', 0), q('fgz', 0));
+    fogGroup.traverse((o: THREE.Object3D) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      fogGeos.push(mesh.geometry);
+      mesh.material = makeFogMaterial();
+      mesh.renderOrder = -5; // over the sky dome, under the rock + plates
+    });
+    scene.add(fogGroup);
+  } catch {
+    /* no fog geometry — the sky + plates still stand */
   }
 
-  /* ── the wanderer (figure only — at the right edge, you stepped past him) ── */
-  const figTexture = new THREE.CanvasTexture(drawWanderer(false));
-  const uFigure = uniform(new THREE.Color(0x181522));
-  const figMat = new THREE.MeshBasicNodeMaterial();
-  figMat.transparent = true;
-  figMat.depthWrite = false;
-  figMat.colorNode = uFigure;
-  figMat.opacityNode = texture(figTexture).a;
-  const figure = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), figMat);
-  figure.scale.set(6.5, 8.65, 1);
-  figure.position.set(6.8, 0.0, -4);
-  figure.renderOrder = 40;
-  scene.add(figure);
-
-  /* ── foreground outcrop under the wanderer (Outcrop mesh only) ── */
+  /* ── foreground outcrop you stand on (Outcrop mesh only; figure removed) ── */
   const terrainMats: THREE.Material[] = [];
   const terrainGeos: THREE.BufferGeometry[] = [];
   let terrainGroup: THREE.Group | null = null;
@@ -245,7 +313,9 @@ export async function mountHub(
     terrainGroup.traverse((o: THREE.Object3D) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      // only the foreground rock; the far peaks/crags would crowd the gallery
+      // only the foreground rock the wanderer perches on; the scattered crags
+      // read as floating debris against the bright fog (tried — they crowd it),
+      // so the rock is the single dark anchor, as in Friedrich's composition.
       if (mesh.name !== 'Outcrop') {
         mesh.visible = false;
         return;
@@ -268,11 +338,65 @@ export async function mountHub(
   addFogLayer(1.15, -2, 0.16, 45);
   addFogLayer(1.45, 4.5, 0.12, 46);
 
-  /* ── the gallery plates: framed paintings hanging in the fog ──────────────
-     Each plate is a Group: a gold frame (a box with real depth + a beveled TSL
-     molding) and the artwork plane. The frame and art are repainted by the
-     Kuwahara pass → a painting inside a painting. Hover clears the lens here. */
+  /* ── the gallery: real carved gold-frame canvases hung in the fog ─────────
+     Each is a Blender-modeled museum frame (carved ogee/cove/bead molding with
+     baked gilt light, assets/lobby/frame.glb), instanced and scaled per world,
+     with a curated still in the rabbet. Frame + art are repainted by the
+     Kuwahara pass → a painting inside a painting. Staged at distinct depths so
+     the gaze DISCOVERS them, not a row. */
   const texLoader = new THREE.TextureLoader();
+
+  // load the carved frame geometry once; all four instances share it.
+  // gltf-transform quantizes POSITION (KHR_mesh_quantization) and keeps the real
+  // scale in the node matrix → bake the world matrix into the geometry, else the
+  // frame loads at normalized (tiny) size.
+  let frameGeoSrc: THREE.BufferGeometry | null = null;
+  try {
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    const gltf = await loader.loadAsync('/assets/lobby/frame.glb');
+    gltf.scene.updateWorldMatrix(true, true);
+    let found: THREE.Mesh | null = null;
+    gltf.scene.traverse((o: THREE.Object3D) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh && !found) found = m;
+    });
+    if (found) {
+      const fm = found as THREE.Mesh;
+      const g = fm.geometry.clone();
+      g.applyMatrix4(fm.matrixWorld); // dequantize to real-world units
+      g.computeBoundingBox();
+      frameGeoSrc = g;
+    }
+  } catch {
+    /* no carved frame — the art + shadow still stand */
+  }
+  // frame_set.py local geometry: outer width = OPEN_W(3.0) + 2·BORDER(0.52) =
+  // 4.04, opening width = 3.0. The loaded geometry lies flat (faces +Y) and the
+  // meshopt dequant scales it, so derive the real scale from the baked bbox:
+  // we want the OPENING (not the outer molding) to equal def.w.
+  const FRAME_OUTER_LOCAL = 3.0 + 2 * 0.52;
+  const FRAME_OPEN_LOCAL = 3.0;
+  let frameOuterW = FRAME_OUTER_LOCAL;
+  let frameDepth = 0.3;
+  if (frameGeoSrc?.boundingBox) {
+    const bb = frameGeoSrc.boundingBox;
+    frameOuterW = bb.max.x - bb.min.x; // width survives the upright rotation (about X)
+    frameDepth = bb.max.y - bb.min.y; // becomes web depth after the upright rotation
+  }
+
+  function makeFrameMaterial(): THREE.MeshBasicNodeMaterial {
+    const m = new THREE.MeshBasicNodeMaterial();
+    m.side = THREE.DoubleSide; // carved molding reads from any grazing angle
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baked: any = attribute('color');
+    const tinted = baked.rgb.mul(uFrameTint);
+    const dist = length(positionWorld.sub(cameraPosition));
+    const aer = smoothstep(uFogNear.add(40), uFogFar, dist).mul(0.55);
+    m.colorNode = mix(tinted, uFogHaze, aer); // deep frames soften into the air
+    return m;
+  }
+
   interface Plate {
     def: PlateDef;
     group: THREE.Group;
@@ -287,48 +411,45 @@ export async function mountHub(
 
   for (const def of PLATE_DEFS) {
     const h = def.w * PLATE_RATIO;
+    // scale so the OPENING equals def.w (robust to the meshopt dequant scale)
+    const s = (def.w / frameOuterW) * (FRAME_OUTER_LOCAL / FRAME_OPEN_LOCAL);
     const group = new THREE.Group();
     group.position.set(...def.pos);
+    const geos: THREE.BufferGeometry[] = [];
+    const mats: THREE.Material[] = [];
 
-    // ── soft drop shadow: the plate has weight, it hangs in the fog ──
-    const shGeo = new THREE.PlaneGeometry((def.w) * 1.32, (h) * 1.4);
+    // ── soft drop shadow cast on the fog beneath: the canvas has weight ──
+    const shGeo = new THREE.PlaneGeometry(def.w * 1.4, h * 1.5);
     const shMat = new THREE.MeshBasicNodeMaterial();
     shMat.transparent = true;
     shMat.depthWrite = false;
     {
       const su = uv();
       const sd = length(su.sub(vec2(0.5)));
-      shMat.colorNode = vec3(0.03, 0.03, 0.06);
-      shMat.opacityNode = smoothstep(0.5, 0.12, sd).mul(0.3);
+      shMat.colorNode = vec3(0.04, 0.05, 0.09);
+      shMat.opacityNode = smoothstep(0.5, 0.1, sd).mul(0.34);
     }
     const shadow = new THREE.Mesh(shGeo, shMat);
-    shadow.position.set(0.3, -0.45, -0.25);
+    shadow.position.set(0.35, -0.5, -0.3);
     shadow.renderOrder = 3;
     group.add(shadow);
+    geos.push(shGeo);
+    mats.push(shMat);
 
-    // ── frame: a wide molding box with real depth, beveled + lit in TSL ──
-    const FRAME = 0.85; // molding width — reads as a frame, not a hairline
-    const DEPTH = 0.42;
-    const frameGeo = new THREE.BoxGeometry(def.w + FRAME * 2, h + FRAME * 2, DEPTH);
-    const frameMat = new THREE.MeshBasicNodeMaterial();
-    {
-      const u = uv();
-      // directional light: the low sun rakes the molding from the upper-left,
-      // so the top-left lifts to bright gold, the lower-right falls to shadow.
-      const lit = clamp(u.y.mul(0.5).add(u.x.oneMinus().mul(0.32)).add(0.46), 0.4, 1.22);
-      // a darker outer rim for a beveled edge (the molding's chamfer)
-      const rim = smoothstep(0.0, 0.035, u.x)
-        .mul(smoothstep(1.0, 0.965, u.x))
-        .mul(smoothstep(0.0, 0.05, u.y))
-        .mul(smoothstep(1.0, 0.95, u.y));
-      const gold = vec3(0.80, 0.60, 0.28);
-      frameMat.colorNode = gold.mul(lit).mul(mix(float(0.58), float(1.0), rim));
+    // ── the carved gold frame (shared geometry, instanced + scaled) ──
+    const frameMat = makeFrameMaterial();
+    mats.push(frameMat);
+    if (frameGeoSrc) {
+      const frame = new THREE.Mesh(frameGeoSrc, frameMat);
+      // the GLB was modelled facing Blender +Z → glTF maps that to +Y (up), so
+      // the frame loads lying flat. Stand it upright facing the camera (+Z).
+      frame.rotation.x = Math.PI / 2;
+      frame.scale.setScalar(s);
+      frame.renderOrder = 4;
+      group.add(frame);
     }
-    const frame = new THREE.Mesh(frameGeo, frameMat);
-    frame.renderOrder = 4;
-    group.add(frame);
 
-    // ── the artwork ──
+    // ── the artwork, seated in the rabbet just behind the front lip ──
     const tex = texLoader.load(def.tex);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
@@ -336,18 +457,18 @@ export async function mountHub(
     const artMat = new THREE.MeshBasicNodeMaterial();
     artMat.colorNode = texture(tex);
     const art = new THREE.Mesh(artGeo, artMat);
-    art.position.z = DEPTH / 2 + 0.01; // sit on the front face of the frame
+    art.position.z = frameDepth * 0.5 * s; // inside the rabbet, behind the front lip
     art.renderOrder = 5;
     art.userData.plateId = def.id;
     group.add(art);
+    geos.push(artGeo);
+    mats.push(artMat);
 
     scene.add(group);
     plates.push({
       def, group, art, h,
       bobPhase: Math.random() * Math.PI * 2,
-      geos: [frameGeo, artGeo],
-      mats: [frameMat, artMat],
-      tex,
+      geos, mats, tex,
     });
   }
 
@@ -363,23 +484,36 @@ export async function mountHub(
     (uHorizon.value as THREE.Color).setHex(p.horizon);
     (uSunCore.value as THREE.Color).setHex(p.sunCore);
     (uSunHalo.value as THREE.Color).setHex(p.sunHalo);
-    (uSunPos.value as THREE.Vector2).set(0.62, p.sunY);
     uSunIntensity.value = p.sunIntensity;
     renderer.setClearColor(p.zenith, 1);
     const far = new THREE.Color(p.fogFar);
     const near = new THREE.Color(p.fogNear);
-    // Friedrich's fog is luminous blue-grey, not warm tan — pull the bank
-    // toward a cool pale grey (more on the far/upper layers), keeping the near
-    // fog a touch warmer where the low sun rakes it. This is the warm-low /
-    // cool-up tension both Friedrich and Aivazovsky share.
+    // Friedrich's fog is luminous blue-grey, not warm tan — pull the ambient
+    // toward a cool pale grey, and let the warm sun-core light scatter through
+    // it from the right. This is the warm-low / cool-up tension both Friedrich
+    // and Aivazovsky share.
     const cool = new THREE.Color(0xc7cfdd);
+    // re-tint the baked fog luminance for the time of day: a bright luminous body
+    // (Friedrich's fog is the brightest mass in the frame), warming toward golden
+    // hour, staying cool-white by day. Multiplied over the baked vertex colour.
+    const lumWhite = new THREE.Color(0xeaf0f6);
+    (uFogTint.value as THREE.Color)
+      .copy(far.clone().lerp(lumWhite, 0.6))
+      .multiplyScalar(1.12 + p.sunIntensity * 0.12);
+    // the far fog dissolves into the warm horizon band of the sky (aerial perspective)
+    (uFogHaze.value as THREE.Color).setHex(p.horizon).lerp(lumWhite, 0.35);
+    // the gilt frames warm with the low sun; kept a touch deep so the gold reads
+    // as gilt, not ivory.
+    (uFrameTint.value as THREE.Color)
+      .setRGB(1, 1, 1)
+      .lerp(new THREE.Color(p.sunHalo), 0.3)
+      .multiplyScalar(0.82 + p.sunIntensity * 0.1);
+    // wisps in the near air pick up the warm low light
     for (const layer of fogLayers) {
-      const d = Math.min(layer.depth, 1);
-      const base = far.clone().lerp(near, d);
-      const coolAmt = 0.46 - d * 0.3; // far layers coolest, near warmest
-      (layer.color.value as THREE.Color).copy(base.lerp(cool, Math.max(coolAmt, 0)));
+      const base = near.clone().lerp(far, 0.3);
+      (layer.color.value as THREE.Color).copy(base.lerp(cool, 0.25));
     }
-    (uHaze.value as THREE.Color).copy(far.clone().lerp(cool, 0.3));
+    (uHaze.value as THREE.Color).copy(far.clone().lerp(cool, 0.4));
   }
   applyPalette();
   const paletteTimer = window.setInterval(applyPalette, 60_000);
@@ -399,10 +533,6 @@ export async function mountHub(
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     const frustumHeightAt = (dist: number) => 2 * dist * Math.tan(THREE.MathUtils.degToRad(CAM_FOV / 2));
-    const skyH = frustumHeightAt(SKY_DIST + 10) * 1.25;
-    const skyW = skyH * camera.aspect * 1.25;
-    skyMesh.scale.set(skyW, skyH, 1);
-    uSkyAspect.value = skyW / skyH;
     for (const layer of fogLayers) {
       const dist = EYE.z - layer.mesh.position.z;
       const fh = frustumHeightAt(dist);
@@ -522,6 +652,8 @@ export async function mountHub(
     const wind = uWind.value as THREE.Vector2;
     wind.x += windVel.x * dt;
     wind.y += windVel.y * dt;
+    // the dome rides with the camera so the sky is always around you
+    skyMesh.position.copy(camera.position);
 
     // reality lens: hovering a plate lifts it even when the hand is still,
     // so the brushwork wipes clear over the painting under the cursor.
@@ -565,11 +697,11 @@ export async function mountHub(
     } else {
       // pan: the mouse is the gaze, swinging within a bounded arc + parallax
       const tyaw = pointer.x * MAX_YAW;
-      const tpitch = pointer.y * -0.12;
+      const tpitch = BASE_PITCH + pointer.y * -0.12;
       yaw += (tyaw - yaw) * 0.05;
       pitch += (tpitch - pitch) * 0.05;
       camera.position.x += (pointer.x * 1.1 - camera.position.x) * 0.03;
-      camera.position.y += (1.0 + pointer.y * -0.3 - camera.position.y) * 0.03;
+      camera.position.y += (EYE.y + pointer.y * -0.3 - camera.position.y) * 0.03;
       camera.lookAt(
         camera.position.x + Math.sin(yaw),
         camera.position.y + Math.sin(pitch),
@@ -588,9 +720,6 @@ export async function mountHub(
       // mostly face the camera, with a breath of wind sway
       p.group.rotation.y = camAz + windVel.x * 0.5 + Math.sin(now * 0.0004 + p.bobPhase) * 0.012;
     }
-
-    // the wanderer breathes
-    figure.rotation.z = Math.sin(now * 0.0004) * 0.004 + windVel.x * 0.18;
 
     painting.render();
     reportPlates();
@@ -621,7 +750,6 @@ export async function mountHub(
       window.removeEventListener('resize', fit);
       window.removeEventListener('pointermove', onPointerMove);
       renderer.setAnimationLoop(null);
-      figTexture.dispose();
       for (const p of plates) {
         for (const g of p.geos) g.dispose();
         for (const m of p.mats) m.dispose();
@@ -629,6 +757,11 @@ export async function mountHub(
       }
       for (const m of terrainMats) m.dispose();
       for (const g of terrainGeos) g.dispose();
+      for (const m of fogMats) m.dispose();
+      for (const g of fogGeos) g.dispose();
+      frameGeoSrc?.dispose();
+      skyMesh.geometry.dispose();
+      skyMat.dispose();
       painting.dispose();
       renderer.dispose();
     },
