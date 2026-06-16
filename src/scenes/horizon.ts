@@ -183,11 +183,14 @@ export async function mountHorizon(
     const below = vec3(0.5, 0.36, 0.4); // muted, just under the cloud sea
     let sky: any = mix(horizon, zenith, smoothstep(0.0, 0.55, up));
     sky = mix(below, sky, smoothstep(-0.16, 0.02, up));
-    // the low sun: a soft disc + a wide warm glow toward -Z
+    // the low sun: a soft disc + a wide warm glow toward -Z. Kept restrained —
+    // a golden-hour sun glows, it does not blow the frame to white (the disc is
+    // tight, the glow gentle, the colour warm-gold rather than near-white, and
+    // the bloom below only lifts what is genuinely the sun core).
     const cosS = clamp(d.dot(uSunDir), -1, 1);
-    const disc = pow(max(cosS, 0), 1600).mul(2.1);
-    const glow = pow(max(cosS, 0), 52).mul(0.6); // tighter halo so cloud detail survives
-    sky = sky.add(vec3(1.5, 1.05, 0.62).mul(disc.add(glow)));
+    const disc = pow(max(cosS, 0), 2000).mul(1.15);
+    const glow = pow(max(cosS, 0), 64).mul(0.34); // tighter halo so cloud detail survives
+    sky = sky.add(vec3(1.22, 0.86, 0.5).mul(disc.add(glow)));
     return sky;
   });
 

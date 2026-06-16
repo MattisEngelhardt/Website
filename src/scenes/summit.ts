@@ -44,7 +44,7 @@ import { createPainting } from './painting';
 
 /* ── Time-of-day palettes (the quintet, bent through the hours) ──── */
 
-interface SkyPalette {
+export interface SkyPalette {
   zenith: number;
   mid: number;
   horizon: number;
@@ -100,7 +100,7 @@ const DAY_CYCLE: Array<[hour: number, palette: SkyPalette]> = [
   [24, NIGHT],
 ];
 
-function lerpPalette(hour: number): SkyPalette {
+export function lerpPalette(hour: number): SkyPalette {
   let a = DAY_CYCLE[0]!;
   let b = DAY_CYCLE[DAY_CYCLE.length - 1]!;
   for (let i = 0; i < DAY_CYCLE.length - 1; i++) {
@@ -132,7 +132,7 @@ function lerpPalette(hour: number): SkyPalette {
 
 /** 4-octave fbm over mx_noise, remapped to ~0..1 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fbm(p: any): any {
+export function fbm(p: any): any {
   return mx_noise_float(p)
     .add(mx_noise_float(p.mul(2.06)).mul(0.5))
     .add(mx_noise_float(p.mul(4.17)).mul(0.25))
@@ -178,7 +178,7 @@ function jaggedPath(
   ctx.closePath();
 }
 
-function drawWanderer(withRock = true): HTMLCanvasElement {
+export function drawWanderer(withRock = true): HTMLCanvasElement {
   const cnv = document.createElement('canvas');
   cnv.width = FIG_W;
   cnv.height = FIG_H;

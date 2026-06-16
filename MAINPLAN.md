@@ -20,7 +20,7 @@ Du übernimmst „Der Wanderer" — die Awwwards-Level-Website über Mattis Enge
 
 | Workstream | Status | Verifiziert wie | Datum |
 |---|---|---|---|
-| A · Main-Lobby (Nebelmeer-Hub) | ⬜ | — | — |
+| A · Main-Lobby (Nebelmeer-Hub) | 🟧 | **Spike `/dev/hub` steht** (`src/scenes/hub.ts` + Spike-Page): Pan (Yaw-Clamp), 4 gerahmte Galerie-Tafeln mit **echten Welt-Renders** (Pipeline `scripts/capture-plates.mjs`), Hover-Lens wischt klar + lesbare Placards, **Klick-Dolly durch den Rahmen** (Money-Shot). `verify-hub.mjs` PASS, check 0, build grün (13 S.), 0 Errors. **2 Review-Runden** (zweiter Opus, gnadenlos): alle P0/P1 adressiert (echte Plates statt Platzhalter, Nebel kühler/dichter, breiter Goldrahmen+Shadow, Wanderer auf Fels verankert). **Offen:** Nebelmeer noch nicht voll dramatisch (flache Planes → ggf. volumetrisch); **Integration A5/A6** (worlds/summit.ts Hub-Modus + index.astro `<a>` + passage.ts Frame→Nav) steht aus; ehrliche FPS nur headed. | 16.06. |
 | B · My Vacations (Galerie + Pipeline) | ⬜ | — | — |
 | C · Camino Blender-Bird's-Eye | ⬜ | — | — |
 | D · Das Boot (The Sea) | ⬜ | — | — |
