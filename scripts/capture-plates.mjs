@@ -9,9 +9,9 @@
  * Usage: node scripts/capture-plates.mjs [baseUrl]
  */
 import { chromium } from 'playwright';
-import sharp from 'sharp';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { gradePlate } from './lib/plate-grade.mjs';
 
 const base = process.argv[2] ?? 'http://localhost:4321';
 const OUT = 'public/assets/plates';
@@ -75,11 +75,9 @@ try {
     await page.screenshot({ path: shot });
     await page.close();
 
-    await sharp(readFileSync(shot))
-      .resize({ width: W, height: H, fit: 'cover', position: 'centre' })
-      .modulate({ saturation: 1.04 })
-      .webp({ quality: 86, effort: 6 })
-      .toFile(resolve(OUT, `${w.id}.webp`));
+    // unified Friedrich/Aivazovsky grade so all four plates belong to ONE painted
+    // world (blueprint P1.6) — shared with grade-plates.mjs to avoid drift.
+    writeFileSync(resolve(OUT, `${w.id}.webp`), await gradePlate(shot, w.id, { w: W, h: H }));
     console.log(`  baked ${w.id}.webp` + (errs.length ? `  (pageerrors: ${errs.length})` : ''));
     if (errs.length) for (const e of errs) console.log('    ! ' + e);
   }

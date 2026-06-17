@@ -18,6 +18,7 @@
  */
 import * as THREE from 'three/webgpu';
 import {
+  abs,
   attribute,
   cameraPosition,
   clamp,
@@ -187,7 +188,7 @@ export async function mountHub(
   const uFogHaze = uniform(new THREE.Color()); // the sky colour the far fog dissolves into
   const uFogNear = uniform(q('fnear', 85)); // aerial perspective onset (world units)
   const uFogFar = uniform(q('ffar', 300)); // fully dissolved to sky by here
-  const uFogContrast = uniform(q('fcon', 1.7)); // crest/valley tonal spread (billow relief)
+  const uFogContrast = uniform(q('fcon', 1.4)); // crest/valley tonal spread (billow relief — kept gentle so valleys stay luminous, not navy)
   const uFrameTint = uniform(new THREE.Color()); // day-cycle warmth over the baked gilt
 
   /* the sky the fog sits in — hemispherical gradient + the low sun disc/glow,
@@ -195,12 +196,21 @@ export async function mountHub(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const skyColor: any = Fn(([rd]: any) => {
     const up = clamp(rd.y, -1, 1);
+    // vertical gradient: warm horizon → mid → cool zenith (warm-low / cool-up)
     const lower = mix(uHorizon, uMid, smoothstep(-0.05, 0.45, up));
-    let sky: any = mix(lower, uZenith, smoothstep(0.32, 0.95, up));
+    let sky: any = mix(lower, uZenith, smoothstep(0.30, 0.95, up));
+    // Aivazovsky luminous horizon band — the brightest strip sits ON the horizon
+    // and falls off with height, lifting the whole skyline into warm light so
+    // the sky is not a flat wash. (~18° band; the fog rises into this glow.)
+    const band = pow(max(float(1).sub(abs(up).mul(3.2)), 0), 2.2).mul(0.5);
+    sky = mix(sky, uSunHalo, band);
+    // the low sun: a hard disc, a tight warm halo, and a broad atmospheric
+    // scatter that bleeds the warmth across the lower sky (the Aivazovsky move).
     const cosS = clamp(rd.dot(uSunDir), -1, 1);
     const disc = pow(max(cosS, 0), 1500).mul(uSunIntensity);
-    const glow = pow(max(cosS, 0), 42).mul(uSunIntensity).mul(0.4);
-    sky = sky.add(uSunCore.mul(disc)).add(uSunHalo.mul(glow));
+    const halo = pow(max(cosS, 0), 42).mul(uSunIntensity).mul(0.4);
+    const scatter = pow(max(cosS, 0), 6).mul(uSunIntensity).mul(0.22);
+    sky = sky.add(uSunCore.mul(disc)).add(uSunHalo.mul(halo)).add(uSunHalo.mul(scatter));
     return sky;
   });
 
@@ -324,7 +334,10 @@ export async function mountHub(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const a: any = attribute('color');
       const mat = new THREE.MeshBasicNodeMaterial();
-      mat.colorNode = hazed(a.rgb.mul(0.72), 12, 60, 0.32); // solid foreground rock
+      // a near-silhouette dark hewn lip — Friedrich's foreground rock is almost
+      // black against the luminous fog, the dark anchor the eye stands on (not a
+      // mid-grey crumble). A cool deep stone tone, barely hazed (it's close).
+      mat.colorNode = hazed(a.rgb.mul(0.42).mul(vec3(0.92, 0.95, 1.05)), 12, 70, 0.22);
       mesh.material = mat;
       mesh.renderOrder = -1;
       terrainMats.push(mat);
@@ -493,13 +506,17 @@ export async function mountHub(
     // it from the right. This is the warm-low / cool-up tension both Friedrich
     // and Aivazovsky share.
     const cool = new THREE.Color(0xc7cfdd);
-    // re-tint the baked fog luminance for the time of day: a bright luminous body
-    // (Friedrich's fog is the brightest mass in the frame), warming toward golden
-    // hour, staying cool-white by day. Multiplied over the baked vertex colour.
-    const lumWhite = new THREE.Color(0xeaf0f6);
+    // re-tint the baked fog luminance for the time of day. Friedrich's fog is the
+    // BRIGHTEST mass in the frame — so pull the body hard toward a luminous warm
+    // white and over-expose it a touch, with only a whisper of the cool fogFar
+    // hue left in the valleys, so the bank glows rather than sitting as a dark
+    // navy mass under a brighter sky. A hint of the warm sun-halo lets it catch
+    // the low light.
+    const lumWhite = new THREE.Color(0xf3f1ec);
     (uFogTint.value as THREE.Color)
-      .copy(far.clone().lerp(lumWhite, 0.6))
-      .multiplyScalar(1.12 + p.sunIntensity * 0.12);
+      .copy(far.clone().lerp(lumWhite, 0.78))
+      .lerp(new THREE.Color(p.sunHalo), 0.12)
+      .multiplyScalar(1.26 + p.sunIntensity * 0.14);
     // the far fog dissolves into the warm horizon band of the sky (aerial perspective)
     (uFogHaze.value as THREE.Color).setHex(p.horizon).lerp(lumWhite, 0.35);
     // the gilt frames warm with the low sun; kept a touch deep so the gold reads
