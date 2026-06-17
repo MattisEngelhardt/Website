@@ -126,8 +126,12 @@ const PLATE_RATIO = 2 / 3; // height / width (3:2 landscape)
 // the rock you stand on — first-person: enlarged, centred-low, running off the
 // bottom of the frame as a repoussoir (you stepped THROUGH the painting; the
 // figure is gone — you ARE the wanderer).
-const TERRAIN_SCALE = 1.5;
-const TERRAIN_POS: [number, number, number] = [0.5, -12.4, 3.6];
+// plinths.glb is modelled at world scale, top of the ForeRock around y≈0, origin
+// near world origin. The eye sits at y≈4.6 looking slightly down, so lift the
+// rock so its hewn lip rises into the lower frame just below you, pulled forward
+// toward the camera. Tunable live via ?pgs/?pgx/?pgy/?pgz/?pgry on the spike.
+const TERRAIN_SCALE = 1.0;
+const TERRAIN_POS: [number, number, number] = [0, -2.2, 2.0];
 
 export async function mountHub(
   canvas: HTMLCanvasElement,
@@ -306,35 +310,42 @@ export async function mountHub(
     /* no fog geometry — the sky + plates still stand */
   }
 
-  /* ── foreground outcrop you stand on (Outcrop mesh only; figure removed) ── */
+  /* ── foreground 3-D environment: the rock you stand on + plinth ledges ─────
+     Real Blender geometry (assets/lobby/plinths.glb): a large first-person
+     ForeRock whose hewn lip fills the lower frame and runs off the bottom (you
+     stepped THROUGH the painting and now stand on it — the figure is gone), plus
+     small hewn ledges that ground the near canvases (anti-float). Unlit baked-AO
+     vertex colour, darkened to a near-silhouette Friedrich anchor, barely hazed
+     (it's close). Built up=+Z → loads upright, no rotation. */
   const terrainMats: THREE.Material[] = [];
   const terrainGeos: THREE.BufferGeometry[] = [];
   let terrainGroup: THREE.Group | null = null;
   try {
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
-    const gltf = await loader.loadAsync('/assets/summit/summit.glb');
+    const gltf = await loader.loadAsync('/assets/lobby/plinths.glb');
     terrainGroup = gltf.scene;
-    terrainGroup.scale.setScalar(TERRAIN_SCALE);
-    terrainGroup.position.set(...TERRAIN_POS);
+    terrainGroup.scale.setScalar(q('pgs', TERRAIN_SCALE));
+    terrainGroup.position.set(q('pgx', TERRAIN_POS[0]), q('pgy', TERRAIN_POS[1]), q('pgz', TERRAIN_POS[2]));
+    terrainGroup.rotation.y = q('pgry', 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hazed = (col: any, near: number, far: number, amt: number): any =>
       mix(col, uHaze, smoothstep(near, far, length(positionWorld.sub(cameraPosition))).mul(amt));
     terrainGroup.traverse((o: THREE.Object3D) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      // only the foreground rock the wanderer perches on; the scattered crags
-      // read as floating debris against the bright fog (tried — they crowd it),
-      // so the rock is the single dark anchor, as in Friedrich's composition.
-      if (mesh.name !== 'Outcrop') {
-        mesh.visible = false;
-        return;
-      }
+      // show only the large ForeRock as the solid foreground repoussoir. The
+      // small plinth ledges sit at un-tuned positions and read as floating dark
+      // debris (the cheap look Mattis rejects) until grounded under each near
+      // canvas — hidden for now (TODO: tune plinth pos to PLATE_DEFS, then show).
+      const isForeRock = !/plinth/i.test(mesh.name)
+        && mesh.geometry.getAttribute('position').count > 1000;
+      if (!isForeRock) { mesh.visible = false; return; }
       terrainGeos.push(mesh.geometry);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const a: any = attribute('color');
       const mat = new THREE.MeshBasicNodeMaterial();
-      // a near-silhouette dark hewn lip — Friedrich's foreground rock is almost
+      // a near-silhouette dark hewn stone — Friedrich's foreground rock is almost
       // black against the luminous fog, the dark anchor the eye stands on (not a
       // mid-grey crumble). A cool deep stone tone, barely hazed (it's close).
       mat.colorNode = hazed(a.rgb.mul(0.42).mul(vec3(0.92, 0.95, 1.05)), 12, 70, 0.22);
@@ -344,7 +355,7 @@ export async function mountHub(
     });
     scene.add(terrainGroup);
   } catch {
-    /* no terrain — the fog gallery still stands */
+    /* no foreground — the fog gallery still stands */
   }
 
   // near wisps drift across the whole view — the fog passes by you, close
