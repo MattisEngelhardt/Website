@@ -41,18 +41,6 @@ const stations = [
       <!-- the town currently underneath the flight (live, from the route data) -->
       <p class="waymark" aria-hidden="true"></p>
 
-      <!-- waymark captions — the meaning of the way; true text is below -->
-      <p class="caption c1 lede" aria-hidden="true">
-        No sprint, no shortcut — just the next waymark, every day.
-      </p>
-      <p class="caption c2 lede" aria-hidden="true">
-        Across the Minho into Galicia: the impossible distance, broken
-        into steps you can actually take today.
-      </p>
-      <p class="caption c3 lede" aria-hidden="true">
-        Ship the step. Trust the accumulation. The sea comes when it comes.
-      </p>
-
       <!-- arrival: the warm gold-out resolving onto the page of the book -->
       <div class="gold-veil" aria-hidden="true"></div>
       <div class="page-veil" aria-hidden="true"></div>
@@ -153,23 +141,6 @@ const stations = [
     white-space: nowrap;
   }
 
-  /* ── waymark captions, set like inscriptions on the land ── */
-  .caption {
-    position: absolute;
-    z-index: 1;
-    max-width: 26ch;
-    margin: 0;
-    opacity: 0;
-    visibility: hidden;
-    color: var(--c-canvas);
-    text-shadow: 0 1px 24px rgb(20 18 31 / 0.7);
-  }
-
-  .c1 { left: clamp(1.5rem, 8vw, 9rem); top: 24%; }
-  .c2 { right: clamp(1.5rem, 7vw, 8rem); top: 28%; text-align: right; }
-  .c3 { left: clamp(1.5rem, 9vw, 10rem); bottom: 28%; }
-
-  :global([data-mode='catalog']) .caption,
   :global([data-mode='catalog']) .waymark,
   :global([data-mode='catalog']) .gold-veil,
   :global([data-mode='catalog']) .page-veil {

@@ -72,20 +72,10 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
         .to('.frontispiece', { yPercent: -42, autoAlpha: 0, ease: 'power1.in', duration: 0.16 }, 0)
         .to('.descend', { autoAlpha: 0, duration: 0.08 }, 0);
 
-      /* waymark captions — the meaning of the way, surfacing as he walks it */
-      const captions: Array<[string, number, number]> = [
-        ['.c1', 0.14, 0.32],
-        ['.c2', 0.4, 0.58],
-        ['.c3', 0.64, 0.8],
-      ];
-      for (const [sel, on, off] of captions) {
-        tl.fromTo(
-          sel,
-          { autoAlpha: 0, y: 26 },
-          { autoAlpha: 1, y: 0, ease: 'power2.out', duration: 0.07 },
-          on,
-        ).to(sel, { autoAlpha: 0, y: -18, ease: 'power1.in', duration: 0.06 }, off);
-      }
+      /* no flavor captions over the flight — the only overlay is the live
+         waymark naming the town underneath (updateWaymark, honest route data).
+         The kitschy inscriptions were purged (Krise #2, §8): this is a clean
+         cinematic bird's-eye pass, not a HUD. */
 
       /* arrival: the warm gold-out, then the page of the book */
       tl.to('.gold-veil', { opacity: 1, ease: 'power1.inOut', duration: 0.14 }, 0.84)

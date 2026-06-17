@@ -60,27 +60,20 @@ try {
     return track ? track.offsetHeight - window.innerHeight : 0;
   });
 
-  // mid-flight: caption 2 window (0.4–0.58), waymark naming a town
+  // mid-flight: waymark naming a town (the kitschy .c1/.c2/.c3 flavor captions
+  // were purged in the Workstream C rebuild — only the live waymark remains)
   await page.evaluate((y) => window.scrollTo(0, y), Math.round(trackHeight * 0.48));
   await page.waitForTimeout(1700);
   const mid = await page.evaluate(() => ({
-    c2: parseFloat(getComputedStyle(document.querySelector('.c2')).opacity),
     wm: document.querySelector('.waymark')?.textContent ?? '',
     wmOpacity: parseFloat(getComputedStyle(document.querySelector('.waymark')).opacity),
   }));
-  check('caption 2 visible mid-flight', mid.c2 > 0.5, `opacity ${mid.c2}`);
   check('waymark naming a town', mid.wm.length > 1 && mid.wmOpacity > 0.5, `"${mid.wm}" @ ${mid.wmOpacity}`);
   await page.screenshot({ path: `${outDir}/camino-48.png` });
 
-  // late flight: caption 3 (0.64–0.8)
+  // late flight: still cinematic, no floating markers
   await page.evaluate((y) => window.scrollTo(0, y), Math.round(trackHeight * 0.72));
   await page.waitForTimeout(1700);
-  const late = await page.evaluate(() => ({
-    c3: parseFloat(getComputedStyle(document.querySelector('.c3')).opacity),
-    c2: parseFloat(getComputedStyle(document.querySelector('.c2')).opacity),
-  }));
-  check('caption 3 visible late', late.c3 > 0.5, JSON.stringify(late));
-  check('caption 2 gone again', late.c2 < 0.3);
   await page.screenshot({ path: `${outDir}/camino-72.png` });
 
   // arrival: the gold-out
@@ -137,7 +130,7 @@ try {
     runway:
       (document.getElementById('flyover-track')?.offsetHeight ?? 0) >
       window.innerHeight * 1.5,
-    captionHidden: getComputedStyle(document.querySelector('.c1')).display === 'none',
+    captionHidden: !document.querySelector('.c1'), // flavor captions removed entirely
     h2: document.querySelector('#way h2')?.textContent ?? '',
   }));
   check('catalogue gate held', cat.mode === 'catalog' && !cat.sceneLive && !cat.runway);
