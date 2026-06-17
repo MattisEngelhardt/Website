@@ -68,15 +68,19 @@ interface PlateDef extends HubPlate {
 // DISCOVERS them — not a row. Nearer = larger and lower; the deepest hangs
 // small and high, softened by aerial perspective. They float in the clear air
 // above the billowing sea, like Friedrich's distant ridges.
+// Spread across a WIDE azimuth arc (≈ −36° … +30°) with staggered depth + height
+// so NONE overlap when viewed head-on and panning DISCOVERS them one by one — the
+// blueprint's "gaze finds them, not a row, never a cheap pile-up." Each plate's
+// angular half-width (~5–9°) stays well inside the gaps between neighbours.
 const PLATE_DEFS: PlateDef[] = [
   { id: 'sea', name: 'The Sea', line: 'Who he is.', href: '/sea', numeral: 'I',
-    tex: '/assets/plates/sea.webp', pos: [-11.5, 3.4, -15], w: 11.0 },
+    tex: '/assets/plates/sea.webp', pos: [-18.5, 2.8, -15], w: 10.0 },
   { id: 'city', name: 'The City', line: 'What he builds.', href: '/city', numeral: 'II',
-    tex: '/assets/plates/city.webp', pos: [-2.0, 6.2, -27], w: 8.6 },
+    tex: '/assets/plates/city.webp', pos: [-7.0, 6.2, -29], w: 8.0 },
   { id: 'camino', name: 'The Way', line: 'Where he walked.', href: '/camino', numeral: 'III',
-    tex: '/assets/plates/camino.webp', pos: [6.6, 3.9, -21], w: 9.4 },
+    tex: '/assets/plates/camino.webp', pos: [8.5, 3.0, -20], w: 9.0 },
   { id: 'horizon', name: 'The Horizon', line: "What's next.", href: '/horizon', numeral: 'IV',
-    tex: '/assets/plates/horizon.webp', pos: [13.5, 6.6, -33], w: 8.2 },
+    tex: '/assets/plates/horizon.webp', pos: [27.0, 6.4, -36], w: 7.5 },
 ];
 
 /** projected screen position of a plate's placard anchor, for DOM overlay */
@@ -114,7 +118,7 @@ export interface HubHandle {
   dispose(): void;
 }
 
-const SKY_DIST = 300; // dome radius — encloses the whole fog sea
+const SKY_DIST = 600; // dome radius — encloses the whole fog sea + the distant ridges
 const KUWAHARA_RADIUS = 4; // real geometry is cheap → the painterly pass gets its budget back
 const PLATE_RATIO = 2 / 3; // height / width (3:2 landscape)
 
@@ -162,7 +166,7 @@ export async function mountHub(
     CAM_FOV,
     canvas.clientWidth / Math.max(canvas.clientHeight, 1),
     0.1,
-    400, // the sea of fog recedes far before aerial-fading to the sky
+    700, // the sea of fog + distant ridges recede far before aerial-fading to the sky
   );
   const EYE = new THREE.Vector3(0, q('ey', 4.6), q('ez', 10));
   camera.position.copy(EYE);
@@ -261,10 +265,18 @@ export async function mountHub(
   }
   const fogLayers: FogLayer[] = [];
 
+  // global wisp liveliness knobs: how fast the near fog streams past the eye and
+  // how strongly it grips the wind. Mattis explicitly wants "fog that drifts past."
+  const WISP_SPEED = q('wspeed', 1.0); // multiplier on the constant streaming
+  const WISP_DRIFT = q('wdrift', 1.0); // multiplier on the wind-grip
+  const WISP_OPACITY = q('wop', 1.0); // multiplier on near-wisp presence
+
   function addFogLayer(depth: number, z: number, baseOpacity: number, order: number) {
     const seed = 17.31 * (depth * 7 + 1);
-    const speed = 0.004 + depth * 0.012;
-    const drift = 0.35 + depth * 0.85;
+    // a constant horizontal stream (independent of pointer wind) so the fog
+    // ALWAYS visibly drifts past, even when the hand is still; the wind adds to it.
+    const speed = (0.018 + depth * 0.05) * WISP_SPEED;
+    const drift = (0.35 + depth * 0.85) * WISP_DRIFT;
 
     const uLayerColor = uniform(new THREE.Color());
     const mat = new THREE.MeshBasicNodeMaterial();
@@ -272,16 +284,25 @@ export async function mountHub(
     mat.depthWrite = false;
     {
       const u = uv();
-      const p = u.mul(vec2(2.4, 1.3)).add(uWind.mul(drift)).add(vec2(time.mul(speed), 0));
+      // two scrolling octaves at slightly different rates → the wisp roils and
+      // tears as it streams, never a rigid sliding texture.
+      const flow = uWind.mul(drift).add(vec2(time.mul(speed), time.mul(speed * 0.18)));
+      const p = u.mul(vec2(2.4, 1.3)).add(flow);
+      const p2 = u.mul(vec2(4.6, 2.1)).add(flow.mul(1.7)).add(vec2(0, 3.1));
       // billowing bank — tight noise window → defined, puffy billows (not a
       // smooth wash); you are DOWN IN the sea of fog. A modest smooth floor
       // grounds the bank, the billows carry the form above it.
       const body = smoothstep(0.40, 0.62, fbm(vec3(p, seed)));
+      const tear = smoothstep(0.45, 0.70, fbm(vec3(p2, seed + 4))); // fast surface roil
+      const shaped = body.mul(0.7).add(body.mul(tear).mul(0.6));
       const topFade = smoothstep(1.0, 0.40, u.y);
       const floor = smoothstep(0.5, 0.0, u.y); // grounded base
       const edge = smoothstep(0.0, 0.06, u.x).mul(smoothstep(1.0, 0.94, u.x));
       mat.colorNode = uLayerColor;
-      mat.opacityNode = clamp(body.mul(topFade).mul(1.25).add(floor.mul(0.5)).mul(edge).mul(baseOpacity), 0, 1);
+      mat.opacityNode = clamp(
+        shaped.mul(topFade).mul(1.35).add(floor.mul(0.5)).mul(edge).mul(baseOpacity).mul(WISP_OPACITY),
+        0, 1,
+      );
     }
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.position.z = z;
@@ -308,6 +329,55 @@ export async function mountHub(
     scene.add(fogGroup);
   } catch {
     /* no fog geometry — the sky + plates still stand */
+  }
+
+  /* ── the DISTANT MOUNTAINS — real Blender ridges (peaks.glb) ───────────────
+     Friedrich's cool blue ridges that float ON the sea of fog: 3-5 ridge masses
+     at staged depths, baked luminance (dark lit-topped rock near, hazing to a
+     pale blue infinity far) in vertex colour. Built up=+Z → loads upright, no
+     rotation (like plinths.glb). Web only re-tints by day-cycle and aerial-fades
+     them HARDER into the sky than the fog (they sit deeper) so they recede to a
+     luminous blue infinity behind the banks. Unlit vertex-colour → ~free.
+     Tuning: ?pkx/?pky/?pkz position · ?pks scale · ?pkfar aerial onset ·
+     ?pkhaze 0..1 extra blue-into-sky lift · ?pkdim overall darken. */
+  const peaksMats: THREE.Material[] = [];
+  const peaksGeos: THREE.BufferGeometry[] = [];
+  let peaksGroup: THREE.Group | null = null;
+  const uPeaksDim = uniform(q('pkdim', 1.0));
+  const uPeaksHaze = uniform(q('pkhaze', 0.32)); // extra fade of the far ridges into the sky
+  const uPeaksFar = uniform(q('pkfar', 360)); // aerial onset for the ridges (deeper than the fog)
+  const uPeaksEnd = uniform(q('pkend', 520)); // ridges fully dissolved into sky here
+  // the ridges are dark cool stone, NOT the luminous fog — their own day-cycle
+  // tint (cool, only a whisper of the warm sun) keeps them reading as Friedrich's
+  // blue mountains rather than glowing white like the bank. (written in applyPalette)
+  const uPeaksTint = uniform(new THREE.Color());
+  try {
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    const gltf = await loader.loadAsync('/assets/lobby/peaks.glb');
+    peaksGroup = gltf.scene;
+    peaksGroup.scale.setScalar(q('pks', 1));
+    peaksGroup.position.set(q('pkx', 0), q('pky', 0), q('pkz', 0));
+    peaksGroup.traverse((o: THREE.Object3D) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      peaksGeos.push(mesh.geometry);
+      const m = new THREE.MeshBasicNodeMaterial();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const baked: any = attribute('color');
+      const tinted = baked.rgb.mul(uPeaksTint).mul(uPeaksDim);
+      // aerial perspective: the deep ridges dissolve into the sky-haze, more so
+      // than the fog (they are further), and the far wall melts almost fully.
+      const dist = length(positionWorld.sub(cameraPosition));
+      const aer = clamp(smoothstep(uPeaksFar, uPeaksEnd, dist).add(uPeaksHaze), 0, 1);
+      m.colorNode = mix(tinted, uFogHaze, aer);
+      mesh.material = m;
+      mesh.renderOrder = -6; // behind the fog banks (-5), over the sky dome (-10)
+      peaksMats.push(m);
+    });
+    scene.add(peaksGroup);
+  } catch {
+    /* no peaks — the fog sea + sky still stand */
   }
 
   /* ── foreground 3-D environment: the rock you stand on + plinth ledges ─────
@@ -358,9 +428,13 @@ export async function mountHub(
     /* no foreground — the fog gallery still stands */
   }
 
-  // near wisps drift across the whole view — the fog passes by you, close
-  addFogLayer(1.15, -2, 0.16, 45);
-  addFogLayer(1.45, 4.5, 0.12, 46);
+  // near wisps drift across the whole view — the fog passes by you, close.
+  // Three depths so the parallax reads: a body wisp mid-near, a faster torn wisp
+  // closer, and a very-near fast veil that streams low across the bottom frame so
+  // the eye SEES the fog moving past (Mattis: "fog that drifts past").
+  addFogLayer(1.15, -2, 0.18, 45);
+  addFogLayer(1.55, 4.5, 0.14, 46);
+  addFogLayer(2.1, 7.5, 0.11, 47);
 
   /* ── the gallery: real carved gold-frame canvases hung in the fog ─────────
      Each is a Blender-modeled museum frame (carved ogee/cove/bead molding with
@@ -536,6 +610,15 @@ export async function mountHub(
       .setRGB(1, 1, 1)
       .lerp(new THREE.Color(p.sunHalo), 0.3)
       .multiplyScalar(0.82 + p.sunIntensity * 0.1);
+    // the distant ridges: a cool, mostly-neutral day-cycle tint with only a
+    // whisper of the warm sun (the +X sun-ward glaze is already baked in). Pulled
+    // toward the cool far-fog hue so they read as Friedrich's blue mountains, and
+    // kept under 1.0 so they stay the dark mass against the luminous bank.
+    (uPeaksTint.value as THREE.Color)
+      .setRGB(1, 1, 1)
+      .lerp(far.clone().lerp(cool, 0.5), 0.45)
+      .lerp(new THREE.Color(p.sunHalo), 0.10)
+      .multiplyScalar(0.92 + p.sunIntensity * 0.08);
     // wisps in the near air pick up the warm low light
     for (const layer of fogLayers) {
       const base = near.clone().lerp(far, 0.3);
@@ -785,6 +868,8 @@ export async function mountHub(
       }
       for (const m of terrainMats) m.dispose();
       for (const g of terrainGeos) g.dispose();
+      for (const m of peaksMats) m.dispose();
+      for (const g of peaksGeos) g.dispose();
       for (const m of fogMats) m.dispose();
       for (const g of fogGeos) g.dispose();
       frameGeoSrc?.dispose();

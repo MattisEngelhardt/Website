@@ -31,8 +31,14 @@ const FOCAL_Y = 0.5;
  *  Kept gentle — a soft drift into the mist, not a hard ram into the
  *  paint surface (Mattis, Krise #2: "sanfter, nicht in die Borsten"). */
 const SMAX = 4.3;
-/** progress at which the zoom is done and the dissolve begins */
-const PUSH_END = 0.84;
+/** scale the paint keeps drifting to THROUGH the dissolve, so the push
+ *  never stalls — the brushwork keeps coming toward you as it gives way to
+ *  the real 3-D depth underneath (the seamless "you stepped through"). */
+const SMAX_THROUGH = 6.4;
+/** progress at which the zoom is done and the dissolve begins. Pulled a
+ *  touch earlier so the dissolve has a longer runway to cross-blend the
+ *  brushwork into the hub's painterly fog (a soft handoff, not a cut). */
+const PUSH_END = 0.74;
 
 const smootherstep = (e: number): number => {
   const t = Math.min(1, Math.max(0, e));
@@ -95,12 +101,18 @@ export function mountThreshold(section: HTMLElement): ThresholdHandle {
     if (!frame) return;
     p = Math.min(1, Math.max(0, p));
 
-    // ── the zoom (0 .. PUSH_END) ──
+    // ── the dissolve progress (PUSH_END .. 1): step through the canvas ──
+    const through = smootherstep((p - PUSH_END) / (1 - PUSH_END));
+
+    // ── the zoom (0 .. PUSH_END), continuing THROUGH the dissolve ──
+    // the scale keeps climbing past SMAX during the dissolve (toward
+    // SMAX_THROUGH) so the brushwork is still drifting toward the eye as it
+    // melts into the hub's fog — the push never stalls, the worlds are one.
     const zoom = smootherstep(p / PUSH_END);
-    const s = lerp(1, SMAX, zoom);
+    const s = lerp(1, SMAX, zoom) + (SMAX_THROUGH - SMAX) * through;
     // ramp the focal-centring in over the first third so the museum
     // hang stays composed and centred at rest, then we lock onto the
-    // wanderer as we approach
+    // sea-of-fog focal (left half) as we approach
     const k = smootherstep(Math.min(1, p / (PUSH_END * 0.42)));
     frame.style.transform = `translate3d(${dx * k}px, ${dy * k}px, 0) scale(${s})`;
 
@@ -110,12 +122,16 @@ export function mountThreshold(section: HTMLElement): ThresholdHandle {
     // start seeing the paint
     if (plate) plate.style.opacity = String(1 - smootherstep(p / 0.16));
     if (cue) cue.style.opacity = String(1 - smootherstep(p / 0.1));
+    // the gilt mat + warm gallery glow fade out before the paint dissolves,
+    // so only the brushwork (not the museum frame) hands into the 3-D world
+    if (mat) mat.style.opacity = String(1 - smootherstep(Math.max(0, (p - PUSH_END * 0.5)) / (PUSH_END * 0.5)));
 
-    // ── the dissolve (PUSH_END .. 1): step through the canvas ──
-    const through = smootherstep((p - PUSH_END) / (1 - PUSH_END));
+    // ── the dissolve: the paint gives way to the real depth underneath ──
     section.style.opacity = String(1 - through);
-    // a breath of defocus as the paint surface gives way to real depth
-    section.style.filter = through > 0 ? `blur(${through * 7}px)` : '';
+    // a breath of defocus as the paint surface gives way to real depth — the
+    // hub's own Kuwahara brushwork meets it on the other side, so the seam is
+    // paint-into-paint, never a sharp photo edge.
+    section.style.filter = through > 0 ? `blur(${through * 9}px)` : '';
     // once fully unveiled, drop out of the way (and out of hit-testing)
     section.style.visibility = through >= 1 ? 'hidden' : '';
   }
@@ -150,7 +166,12 @@ export function mountThreshold(section: HTMLElement): ThresholdHandle {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('pointermove', onPointer);
       if (frame) frame.style.transform = '';
-      if (mat) mat.style.transform = '';
+      if (mat) {
+        mat.style.transform = '';
+        mat.style.opacity = '';
+      }
+      if (plate) plate.style.opacity = '';
+      if (cue) cue.style.opacity = '';
       section.style.opacity = '';
       section.style.filter = '';
       section.style.visibility = '';

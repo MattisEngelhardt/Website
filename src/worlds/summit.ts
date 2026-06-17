@@ -1,18 +1,27 @@
 /**
- * World controller — Act 0, The Summit.
+ * World controller — Act 0, The Threshold → the Main-Lobby (the hub).
  *
- * Owns the whole opening as one scroll-bound act:
- *   1. the Threshold — a push through his favourite painting (the
- *      museum frame recedes, the brushwork fills the frame), which
- *      dissolves into …
- *   2. the living summit — name and tagline arrive on the WebGPU sea
- *      of fog, an establishing beat, then …
- *   3. the descent — the white-out sinks the page onto the paper of
- *      the book (#descent), the threshold into Act I.
+ * Owns the whole opening as one act:
+ *   1. the Threshold — a push through his favourite painting (the museum
+ *      frame recedes, the brushwork fills the frame, landing in the LEFT
+ *      half: the luminous sea of fog and the blue ridges), which dissolves
+ *      seamlessly into …
+ *   2. the living Main-Lobby — you have stepped THROUGH the canvas and now
+ *      stand inside the sea of fog: the foreground rock low, the luminous
+ *      billowing bank, the distant Friedrich peaks, the gallery canvases
+ *      hanging in the clear air. The composition CONTINUES the painting.
+ *
+ * The hub is a navigable gallery: pan with the mouse, hover a canvas to wipe
+ * the brushwork clear + lift its placard, click to dolly through the frame
+ * and hand off to real Astro navigation (die Passage takes the painted veil).
+ *
+ * (A5/A6 integration: replaces the old frontispiece + figure + descent summit
+ * beat. The old src/scenes/summit.ts module is no longer mounted here.)
  *
  * Returns one cleanup so die Passage can strike the whole set.
  */
 import type { Cleanup, WorldContext } from '../lib/passage';
+import type { HubHandle, PlateScreen } from '../scenes/hub';
 
 export async function mount(ctx: WorldContext): Promise<Cleanup> {
   if (ctx.mode !== 'full') return () => {};
@@ -20,20 +29,103 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
   const { initJourney, gsap } = await import('../lib/journey');
   initJourney();
 
-  /* ── the living summit behind the canvas ── */
-  let setDescent: (t: number) => void = () => {};
-  let scene: { dispose(): void } | null = null;
-  const canvas = document.getElementById('summit-canvas');
+  /* ── the living Main-Lobby behind the canvas ── */
+  let hub: HubHandle | null = null;
+  const canvas = document.getElementById('hub-canvas');
+  const placards = document.getElementById('hub-placards');
   if (canvas instanceof HTMLCanvasElement) {
-    const { mountSummit } = await import('../scenes/summit');
-    const handle = await mountSummit(canvas);
-    if (handle) {
-      scene = handle;
-      setDescent = (t) => handle.setDescent(t);
-    }
+    const { mountHub } = await import('../scenes/hub');
+    hub = await mountHub(canvas);
   }
 
-  /* ── the threshold overlay (his painting, framed) ── */
+  /* ── the gallery placards (mirror dev/hub.astro's wiring) ──
+     one museum placard per plate, positioned per frame from the projected
+     plate anchor; quiet at rest, lifting on hover. */
+  const placardEls = new Map<string, HTMLElement>();
+  if (hub && placards instanceof HTMLElement) {
+    for (const p of hub.plates) {
+      const el = document.createElement('a');
+      el.className = 'placard';
+      el.dataset.id = p.id;
+      el.href = p.href; // real nav target → SEO + keyboard + middle-click
+      el.setAttribute('aria-label', `${p.name} — ${p.line}`);
+      el.innerHTML =
+        `<span class="num">${p.numeral}</span>` +
+        `<span class="name">${p.name}</span>` +
+        `<span class="rule"></span>` +
+        `<span class="line">${p.line}</span>`;
+      placards.appendChild(el);
+      placardEls.set(p.id, el);
+    }
+    hub.setOnUpdate((list: PlateScreen[]) => {
+      for (const s of list) {
+        const el = placardEls.get(s.id);
+        if (!el) continue;
+        if (!s.visible) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          continue;
+        }
+        const sc = s.hovered ? Math.max(s.scale, 1.0) : s.scale;
+        el.style.transform =
+          `translate3d(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px, 0) translate(-50%, 0) scale(${sc.toFixed(3)})`;
+        el.classList.toggle('is-hovered', s.hovered);
+        el.style.pointerEvents = 'auto';
+        if (!s.hovered) {
+          el.style.opacity = String(Math.min(0.55, 0.3 + s.scale * 0.22).toFixed(2));
+        } else {
+          el.style.opacity = '1';
+        }
+      }
+    });
+  }
+
+  /* ── click a canvas → dolly through the frame → hand to die Passage ──
+     The dolly fills the viewport, then a programmatic click on the placard's
+     real <a href> lets passage.ts take the painted veil into the target world. */
+  let entering = false;
+  async function enter(id: string): Promise<void> {
+    if (!hub || entering) return;
+    entering = true;
+    await hub.focus(id);
+    const href = hub.plates.find((p) => p.id === id)?.href;
+    const el = href ? placardEls.get(id) : null;
+    if (el) {
+      el.click(); // real navigation → die Passage closes the veil in the target palette
+    } else if (href) {
+      location.href = href;
+    }
+  }
+  function onCanvasClick(): void {
+    const id = hub?.hoveredId();
+    if (id) void enter(id);
+  }
+  function onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
+      hub?.unfocus();
+      entering = false;
+    }
+  }
+  // clicking a placard directly should also dolly through first (preventDefault
+  // the bare link, run the cinematic, then navigate) — unless reduced data wants
+  // the plain link. We keep the link as the fallback / SEO anchor.
+  function onPlacardClick(e: MouseEvent): void {
+    const a = (e.target as HTMLElement)?.closest('.placard') as HTMLElement | null;
+    if (!a || !hub) return;
+    const id = a.dataset.id;
+    if (!id || entering) return;
+    e.preventDefault();
+    void enter(id);
+  }
+  if (canvas instanceof HTMLCanvasElement) {
+    canvas.addEventListener('click', onCanvasClick);
+  }
+  if (placards instanceof HTMLElement) {
+    placards.addEventListener('click', onPlacardClick);
+  }
+  window.addEventListener('keydown', onKeydown);
+
+  /* ── the threshold overlay (his painting, framed) → dissolves into the hub ── */
   let setThreshold: (p: number) => void = () => {};
   let threshold: { dispose(): void } | null = null;
   const frame = document.getElementById('threshold');
@@ -45,13 +137,13 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
   }
 
   const stage = gsap.context(() => {
-    const track = document.getElementById('descent-track');
+    const track = document.getElementById('threshold-track');
     if (track) {
-      // the name and the descend-cue arrive only once we step through
-      gsap.set(['.frontispiece', '.descend'], { autoAlpha: 0 });
+      // the lobby chrome (the quiet "drag the gaze" affordance) arrives only
+      // once we have stepped through the canvas.
+      gsap.set('.hub-cue', { autoAlpha: 0 });
 
       const push = { p: 0 };
-      const sink = { t: 0 };
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -62,35 +154,22 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
         },
       });
 
-      // 1 — through the frame (push + dissolve packed into the first half)
+      // through the frame: the push + dissolve, packed into the scroll runway.
+      // At p=1 the painting has fully dissolved into the live hub underneath.
       tl.to(push, {
         p: 1,
         ease: 'none',
-        duration: 0.5,
+        duration: 1,
         onUpdate: () => setThreshold(push.p),
       }, 0);
 
-      // 2 — the world arrives as the canvas dissolves away
-      tl.fromTo('.frontispiece',
+      // the lobby affordance fades in as the canvas dissolves away
+      tl.fromTo('.hub-cue',
         { autoAlpha: 0, yPercent: 8 },
-        { autoAlpha: 1, yPercent: 0, ease: 'power2.out', duration: 0.12 }, 0.40);
-      tl.fromTo('.descend',
-        { autoAlpha: 0 },
-        { autoAlpha: 1, ease: 'power1.out', duration: 0.1 }, 0.44);
-
-      // 3 — the descent: the sea rises into the white-out → paper
-      tl.to(sink, {
-        t: 1,
-        ease: 'none',
-        duration: 0.4,
-        onUpdate: () => setDescent(sink.t),
-      }, 0.6);
-      tl.to('.frontispiece', { yPercent: -46, autoAlpha: 0, ease: 'power1.in', duration: 0.18 }, 0.6);
-      tl.to('.descend', { autoAlpha: 0, duration: 0.06 }, 0.6);
-      tl.to('.fog-veil', { opacity: 1, ease: 'power1.inOut', duration: 0.22 }, 0.78);
+        { autoAlpha: 1, yPercent: 0, ease: 'power2.out', duration: 0.18 }, 0.7);
     }
 
-    /* narrative beats settle into place as the walk reaches them */
+    /* the bio paper below settles into place as the page is read */
     for (const el of document.querySelectorAll('#descent .act > *, .worlds > *')) {
       gsap.from(el, {
         y: 28,
@@ -104,7 +183,12 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
 
   return () => {
     stage.revert();
+    if (canvas instanceof HTMLCanvasElement) canvas.removeEventListener('click', onCanvasClick);
+    if (placards instanceof HTMLElement) placards.removeEventListener('click', onPlacardClick);
+    window.removeEventListener('keydown', onKeydown);
+    for (const el of placardEls.values()) el.remove();
+    placardEls.clear();
     threshold?.dispose();
-    scene?.dispose();
+    hub?.dispose();
   };
 }

@@ -25,9 +25,11 @@ const description =
   </script>
 
   <!-- Act 0 opens at a museum wall: his favourite painting, framed.
-       Scrolling pushes the camera through the canvas into the living
-       summit (src/scenes/threshold.ts). In the catalogue this is simply
-       the framed plate at the top of the page. -->
+       Scrolling pushes the camera through the canvas, landing in the left
+       half (the sea of fog + the blue ridges), and dissolves seamlessly
+       into the living Main-Lobby — the 3D world continues the painting
+       (src/scenes/threshold.ts → src/scenes/hub.ts). In the catalogue this
+       is simply the framed plate at the top of the page. -->
   <section class="threshold" id="threshold" aria-label="Through the frame — Wanderer above the Sea of Fog">
     <div class="gallery" aria-hidden="true"></div>
     <figure class="artframe">
@@ -51,22 +53,33 @@ const description =
     </figure>
   </section>
 
-  <div class="descent-track" id="descent-track">
+  <!-- the scroll runway for the push through the painting. Once it dissolves,
+       you stand inside the living Main-Lobby (src/scenes/hub.ts): the sea of
+       fog, the distant peaks, and the four worlds hanging in the air as
+       gallery canvases — the 3D blocks ARE the navigation. -->
+  <div class="threshold-track" id="threshold-track">
     <header class="hero" data-scene>
-      <canvas id="summit-canvas" aria-hidden="true"></canvas>
+      <canvas id="hub-canvas" aria-hidden="true"></canvas>
+      <!-- the gallery placards: one museum card per world, positioned per
+           frame from the projected canvas anchor by the controller. The full
+           experience reveals them in 3D; the catalogue uses the <ol> below. -->
+      <div class="hub-placards" id="hub-placards" aria-hidden="true"></div>
+      <!-- the only chrome in the lobby: a quiet affordance, fading in once you
+           have stepped through the canvas. -->
+      <p class="hub-cue mono-label" aria-hidden="true">
+        Drag the gaze · hover a world · click to enter
+      </p>
+      <!-- the frontispiece title lives only in the catalogue / SEO path; in
+           the full experience the lobby itself is the opening (no figure, no
+           descent white-out). Kept in the DOM for the catalogue + screen
+           readers; CSS hides it in full mode. -->
       <div class="frontispiece">
-        <p class="mono-label">Act 0 — The Summit</p>
+        <p class="mono-label">Act 0 — The Threshold</p>
         <h1>Mattis Engelhardt</h1>
         <p class="tagline lede">
           Building agents until all that&rsquo;s left to do is what I love.
         </p>
       </div>
-      <a class="descend mono-label" href="#descent">
-        <span>Descend into the fog</span>
-        <span class="descend-line" aria-hidden="true"></span>
-      </a>
-      <!-- the white-out: scroll sinks the page into the sea of fog -->
-      <div class="fog-veil" aria-hidden="true"></div>
     </header>
   </div>
 
@@ -127,19 +140,106 @@ const description =
 </World>
 
 <style>
-  /* the scroll runway — one continuous act in the full experience:
-     the push through the painting, an establishing beat on the summit,
-     then the long sink into the white-out. The catalogue reads straight
-     through (threshold plate → name → about). */
-  :global([data-mode='full']) .descent-track {
-    height: 460svh;
+  /* the scroll runway — the full experience pushes through the painting,
+     which dissolves into the living Main-Lobby (the hub stays pinned via
+     .hero { position: sticky }). The catalogue reads straight through
+     (threshold plate → name → about). */
+  :global([data-mode='full']) .threshold-track {
+    height: 300svh;
   }
 
-  /* in the full journey the name arrives only once we step through the
-     canvas — the threshold timeline fades it in. (The loader covers
-     this first paint, so there is no flash.) The catalogue keeps it. */
+  /* in the full experience the lobby IS the opening — the frontispiece
+     title and the placard/cue chrome belong to the 3D scene, not the page.
+     The catalogue keeps the frontispiece (its title + tagline). */
   :global([data-mode='full']) .frontispiece {
+    display: none;
+  }
+  /* the catalogue (and reduced-motion / no-JS) never mounts the hub — hide
+     its empty containers there so they leave no gap. */
+  :global([data-mode='catalog']) .hub-placards,
+  :global([data-mode='catalog']) .hub-cue {
+    display: none;
+  }
+
+  /* ── the gallery placards (one museum card per world, positioned per
+        frame by the controller from the projected canvas anchor) ── */
+  .hub-placards {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .hub-placards :global(.placard) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate3d(-50%, 0, 0);
+    text-align: center;
+    color: #f7f1e6;
+    text-decoration: none;
     opacity: 0;
+    transition: opacity 320ms var(--ease-lift), filter 320ms var(--ease-lift);
+    will-change: transform, opacity;
+    padding: 0.5em 1.1em 0.65em;
+    border-radius: 2px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, #1a1422 78%, transparent),
+      color-mix(in oklab, #1a1422 58%, transparent));
+    box-shadow: 0 6px 26px rgba(8, 6, 12, 0.4);
+    backdrop-filter: blur(3px);
+    border-top: 1px solid color-mix(in oklab, #ffce86 40%, transparent);
+    text-shadow: 0 1px 3px rgba(8, 6, 12, 0.85);
+  }
+  .hub-placards :global(.placard .num) {
+    display: block;
+    font: 600 11px/1 var(--font-mono);
+    letter-spacing: 0.24em;
+    color: #ffce86;
+    opacity: 0.9;
+  }
+  .hub-placards :global(.placard .name) {
+    display: block;
+    font-family: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 72, 'SOFT' 0, 'WONK' 1;
+    font-weight: 480;
+    margin: 0.4em 0 0.15em;
+    font-size: clamp(1.25rem, 2.6vw, 2.05rem);
+    line-height: 1.05;
+  }
+  .hub-placards :global(.placard .rule) {
+    display: block;
+    width: 2.4em;
+    height: 1px;
+    margin: 0.5em auto;
+    background: linear-gradient(90deg, transparent, #ffce86, transparent);
+    opacity: 0.8;
+  }
+  .hub-placards :global(.placard .line) {
+    display: block;
+    font: italic 400 0.9rem/1.3 'Fraunces Variable', 'Fraunces', Georgia, serif;
+    opacity: 0.9;
+    letter-spacing: 0.01em;
+  }
+  .hub-placards :global(.placard.is-hovered) {
+    opacity: 1 !important;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, #1a1422 90%, transparent),
+      color-mix(in oklab, #1a1422 72%, transparent));
+  }
+
+  /* the one quiet affordance in the lobby */
+  .hub-cue {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(1.5rem, 4vh, 3rem);
+    transform: translateX(-50%);
+    z-index: 4;
+    color: #f6efe3cc;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+    text-shadow: 0 1px 8px #000;
+    text-align: center;
   }
 
   /* the painted fallback sky — also the LCP backdrop while the scene streams in */
@@ -166,24 +266,13 @@ const description =
     background: linear-gradient(to bottom, #0b0e1d, #141a30 48%, #2a3552 72%, #232c44);
   }
 
-  /* day skies are pale — the frontispiece switches to ink, like a
-     printed plate caption (the scene behind stays painterly bright) */
+  /* day skies are pale — the catalogue frontispiece switches to ink, like a
+     printed plate caption (the lobby scene behind stays painterly bright) */
   :global([data-daypart='day']) .hero {
     color: var(--c-deep);
   }
   :global([data-daypart='day']) .frontispiece h1 {
     text-shadow: 0 2px 44px rgb(246 239 227 / 0.5);
-  }
-
-  /* the white-out veil — ends exactly on the paper of #descent */
-  .fog-veil {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    opacity: 0;
-    background:
-      radial-gradient(120% 90% at 50% 110%, var(--c-canvas) 55%, color-mix(in oklab, var(--c-canvas) 92%, var(--c-babyblue)) 100%);
   }
 
   /* ── the five worlds ── */
