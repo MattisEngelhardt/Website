@@ -1,0 +1,452 @@
+---
+/**
+ * My Vacations — where he's been. A premium phantom.land-style media
+ * gallery, translated into Mattis' warm Friedrich/Aivazovsky idiom: a
+ * slightly curved canvas wall of photo + video tiles you drag through,
+ * with an immersive lightbox. The living wall mounts via die Passage
+ * (src/worlds/vacations.ts); this page is markup + styles + the full
+ * static gallery (SEO + catalogue + reduced-motion fallback) only.
+ */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import World from '../layouts/World.astro';
+
+// TODO(Mattis): final SEO copy.
+const title = 'My Vacations — Where He’s Been';
+const description =
+  'A painterly, hand-curated gallery of Mattis Engelhardt’s travels — Montenegro, Italy, Bavaria, Austria — photos and videos, drifting on a curved canvas you wander through.';
+
+/**
+ * BUILD-TIME manifest read (chosen path), guarded so a MISSING manifest
+ * still builds. The manifest lives in public/ (served verbatim, NOT a
+ * Vite module — so import.meta.glob over public/ is unreliable). We read
+ * it straight off disk in the Node frontmatter: deterministic, picks up a
+ * freshly generated file, and the try/catch keeps a missing file from
+ * breaking the build. Result feeds the static <figure> gallery for SEO +
+ * catalogue + reduced-motion. The controller ALSO runtime-fetches the
+ * manifest, so the live wall stays fresh even if it was regenerated after
+ * this build, and an empty build-time list still gets a live wall.
+ */
+type Item = {
+  id: string;
+  type: 'photo' | 'video';
+  place: string;
+  date: string;
+  w: number;
+  h: number;
+  lqip: string;
+  poster: string;
+  srcset?: { avif: string; webp: string };
+  preview?: { src: string; type: string }[];
+  full?: { src: string; type: string }[];
+};
+
+let items: Item[] = [];
+try {
+  const manifestUrl = new URL(
+    '../../public/assets/vacations/manifest.json',
+    import.meta.url,
+  );
+  const raw = readFileSync(fileURLToPath(manifestUrl), 'utf-8');
+  const parsed = JSON.parse(raw) as { items?: Item[] };
+  if (Array.isArray(parsed.items)) items = parsed.items;
+} catch {
+  // no manifest yet — the page still builds; controller fills the wall live
+  items = [];
+}
+---
+
+<World title={title} description={description} world="vacations">
+  <header class="vac-hero" data-scene>
+    <div class="frontispiece">
+      <p class="mono-label">My Vacations</p>
+      <h1>Where he&rsquo;s been.</h1>
+      <p class="tagline lede">
+        A canvas of the places that shaped him — drag to wander through,
+        click to step inside.
+      </p>
+    </div>
+    <p class="vac-cue mono-label" aria-hidden="true">Drag to wander</p>
+
+    <!-- the living curved wall mounts here (src/worlds/vacations.ts).
+         hidden until the controller confirms a manifest; if the fetch
+         fails the static gallery below remains the experience. -->
+    <div class="vac-stage" id="vacations-stage" aria-hidden="true" hidden></div>
+  </header>
+
+  <!-- ── the full static gallery: SEO + catalogue + reduced-motion ──
+       Real semantic <figure> list. In the full experience the controller
+       hides this and takes over with the curved drag-wall. If the manifest
+       is empty at build time this renders as an empty <ol> the controller
+       can still populate from its runtime fetch. -->
+  <section id="vacations-catalog" class="vac-catalog paper" aria-label="Travel gallery">
+    <div class="act">
+      <p class="mono-label">The gallery</p>
+      <h2>Where he&rsquo;s been</h2>
+      <p>
+        Photographs and short films from the road — Montenegro, Italy,
+        Bavaria, Austria — kept unsorted on purpose, the way a journey is
+        actually remembered: not by place, but by light.
+      </p>
+    </div>
+
+    <ol class="vac-wall" id="vacations-wall">
+      {
+        items.map((it) => (
+          <li class="vac-fig-item">
+            <figure class="vac-fig">
+              {it.type === 'video' ? (
+                <video
+                  class="vac-fig-media"
+                  muted
+                  loop
+                  playsinline
+                  preload="none"
+                  poster={it.poster}
+                  width={it.w}
+                  height={it.h}
+                >
+                  {(it.preview ?? []).map((s) => (
+                    <source src={s.src} type={s.type} />
+                  ))}
+                </video>
+              ) : it.srcset ? (
+                <picture>
+                  <source type="image/avif" srcset={it.srcset.avif} />
+                  <source type="image/webp" srcset={it.srcset.webp} />
+                  <img
+                    class="vac-fig-media"
+                    src={it.poster}
+                    alt={`${it.place}, ${it.date}`}
+                    width={it.w}
+                    height={it.h}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              ) : (
+                <img
+                  class="vac-fig-media"
+                  src={it.poster}
+                  alt={`${it.place}, ${it.date}`}
+                  width={it.w}
+                  height={it.h}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+              <figcaption class="vac-fig-cap mono-label">
+                {it.place} · {it.date}
+              </figcaption>
+            </figure>
+          </li>
+        ))
+      }
+    </ol>
+
+    {
+      items.length === 0 && (
+        <p class="vac-empty mono-label" aria-hidden="true">
+          The gallery is being developed — photographs coming soon.
+        </p>
+      )
+    }
+  </section>
+
+  <footer class="act">
+    <a class="onward" href="/horizon">
+      <span class="mono-label">Continue the journey</span>
+      <span class="onward-name">The Horizon</span>
+    </a>
+  </footer>
+</World>
+
+<style>
+  /* warm parchment/gold world ground — the canvas of the gallery */
+  :global([data-world='vacations']) {
+    background: linear-gradient(to bottom, #2a2535, #5a4a3a 55%, #8a6f4e);
+  }
+
+  /* ── the hero stage that holds the living wall ── */
+  .vac-hero {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: radial-gradient(120% 100% at 50% 30%, #3a3346 0%, #241f2e 60%, #14121f 100%);
+  }
+
+  .frontispiece {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: var(--gutter);
+    translate: 0 -4vh;
+    pointer-events: none;
+  }
+
+  .frontispiece h1 {
+    margin-block: 0.3em 0.35em;
+    text-shadow: 0 2px 44px rgb(20 18 31 / 0.5);
+  }
+
+  .tagline {
+    margin-inline: auto;
+    opacity: 0.9;
+    max-width: 32ch;
+  }
+
+  .vac-cue {
+    position: absolute;
+    bottom: clamp(4.5rem, 9vh, 7rem);
+    left: 50%;
+    translate: -50% 0;
+    z-index: 2;
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
+  /* ── the living wall stage (filled by the controller) ── */
+  .vac-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    perspective: 1400px;
+    perspective-origin: 50% 45%;
+    touch-action: none;
+    cursor: grab;
+  }
+  .vac-stage.is-dragging {
+    cursor: grabbing;
+  }
+
+  /* the controller hides the cue/frontispiece once you start dragging is
+     handled in CSS via the dragging state on the stage's ancestor hero */
+  .vac-hero:has(.vac-stage.is-dragging) .frontispiece,
+  .vac-hero:has(.vac-stage.is-dragging) .vac-cue {
+    opacity: 0;
+    transition: opacity var(--t-flick) var(--ease-lift);
+  }
+
+  /* the drag layer + tiles (created in JS; styled here, GPU-composited) */
+  :global(.vac-layer) {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+    /* the layer is a full-size box at z=0; tiles curve to negative translateZ
+       and would be occluded by it in 3-D hit-testing (clicks would never reach
+       a tile). Make the layer transparent to pointers — the drag handlers live
+       on the stage root behind it, and the tiles opt back in below. */
+    pointer-events: none;
+  }
+
+  :global(.vac-tile) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    pointer-events: auto; /* tiles catch clicks (parent layer is none) */
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    /* the carved gilt frame, painted like the lobby plates */
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--c-sun) 60%, #8a6f3a),
+      0 24px 60px -22px rgb(0 0 0 / 0.7),
+      0 4px 14px rgb(0 0 0 / 0.4);
+    transition:
+      box-shadow var(--t-flick) var(--ease-lift),
+      filter var(--t-flick) var(--ease-lift);
+    filter: saturate(0.96) contrast(1.02);
+  }
+
+  :global(.vac-tile.is-hover) {
+    box-shadow:
+      0 0 0 2px var(--c-sun),
+      0 34px 80px -20px rgb(0 0 0 / 0.78),
+      0 0 40px -6px color-mix(in oklab, var(--c-sun) 45%, transparent);
+    filter: saturate(1.04) contrast(1.04);
+    z-index: 3;
+  }
+
+  :global(.vac-media) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* ── the lightbox (created in JS) ── */
+  :global(.vac-lightbox) {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--t-breath) var(--ease-arrive), visibility var(--t-breath);
+  }
+  :global(.vac-lightbox[aria-hidden='false']) {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  :global(.vac-lb-backdrop) {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 100% at 50% 45%, rgb(20 18 31 / 0.82), rgb(8 8 12 / 0.96));
+    backdrop-filter: blur(6px);
+  }
+
+  :global(.vac-lb-figure) {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    gap: 0.9rem;
+    max-width: min(92vw, 1400px);
+    max-height: 86svh;
+  }
+
+  :global(.vac-lb-stage) {
+    display: grid;
+    place-items: center;
+    /* the gilt mat around the framed media */
+    padding: clamp(0.5rem, 1.2vh, 1rem);
+    background: linear-gradient(150deg, #f4ecd8 0%, #e4d6b6 50%, #cdb98f 100%);
+    border-style: solid;
+    border-width: clamp(0.5rem, 1.4vh, 1.1rem);
+    border-image: linear-gradient(135deg, #caa55c 0%, #6f5526 34%, #e3c886 58%, #7c5f2d 100%) 1;
+    box-shadow: 0 50px 110px -40px rgb(0 0 0 / 0.85);
+  }
+
+  :global(.vac-lb-media) {
+    display: block;
+    max-width: 86vw;
+    max-height: 74svh;
+    width: auto;
+    height: auto;
+  }
+
+  :global(.vac-lb-cap) {
+    color: var(--c-haze);
+    opacity: 0.8;
+    letter-spacing: 0.12em;
+    text-transform: none;
+  }
+
+  :global(.vac-lb-btn) {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 1px solid color-mix(in oklab, var(--c-canvas) 18%, transparent);
+    background: color-mix(in oklab, var(--c-ink) 55%, transparent);
+    backdrop-filter: blur(10px);
+    color: var(--c-canvas);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background var(--t-flick) var(--ease-lift),
+      scale var(--t-flick) var(--ease-lift);
+  }
+  :global(.vac-lb-btn:hover) {
+    background: color-mix(in oklab, var(--c-ink) 80%, transparent);
+    scale: 1.08;
+  }
+
+  :global(.vac-lb-prev) { left: clamp(1rem, 3vw, 2.5rem); top: 50%; translate: 0 -50%; }
+  :global(.vac-lb-next) { right: clamp(1rem, 3vw, 2.5rem); top: 50%; translate: 0 -50%; }
+  :global(.vac-lb-close) { top: clamp(1rem, 3vh, 2rem); right: clamp(1rem, 3vw, 2.5rem); }
+  :global(.vac-lb-sound) { bottom: clamp(1rem, 3vh, 2rem); right: clamp(1rem, 3vw, 2.5rem); }
+
+  /* ── the static gallery (SEO / catalogue / reduced-motion) ── */
+  :global(#vacations-catalog) h2 {
+    color: var(--c-ink);
+  }
+
+  .vac-wall {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0 var(--gutter) var(--space-act);
+    max-width: 1500px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .vac-fig {
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .vac-fig-media {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: 3px;
+    background: var(--c-haze);
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--c-sun) 55%, #8a6f3a),
+      0 14px 34px -16px rgb(0 0 0 / 0.45);
+  }
+
+  .vac-fig-cap {
+    color: var(--c-vermilion);
+    opacity: 0.85;
+    text-transform: none;
+    letter-spacing: 0.08em;
+  }
+
+  .vac-empty {
+    text-align: center;
+    padding: 0 var(--gutter) var(--space-act);
+    opacity: 0.6;
+    color: var(--c-ink);
+  }
+
+  /* full experience: the living wall replaces the static gallery.
+     (the controller also sets [hidden] on #vacations-catalog at runtime;
+     this keeps the page tidy before JS even runs, in full mode) */
+  :global([data-mode='full']) #vacations-catalog {
+    /* kept in the DOM for the controller's runtime fallback, but visually
+       out of the way once the wall is live — the controller hides it. */
+  }
+
+  /* ── footer ── */
+  footer {
+    color: var(--c-canvas);
+  }
+
+  .onward {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+    padding-block: 1rem;
+  }
+
+  .onward-name {
+    font-size: var(--text-lede);
+    font-variation-settings: 'opsz' 60, 'SOFT' 0, 'WONK' 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vac-lightbox { transition: none; }
+  }
+</style>

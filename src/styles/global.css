@@ -473,6 +473,14 @@ a:hover {
 .passage[data-to='camino'] .passage-plate { color: var(--c-ink); }
 .passage[data-to='camino'] .passage-act { color: var(--c-vermilion); }
 
+.passage[data-to='vacations'] .s1 { background: var(--c-orange); }
+.passage[data-to='vacations'] .s2 { background: color-mix(in oklab, var(--c-sun) 60%, var(--c-canvas)); }
+.passage[data-to='vacations'] .s3 {
+  background: linear-gradient(125deg, var(--c-canvas) 38%, var(--c-haze));
+}
+.passage[data-to='vacations'] .passage-plate { color: var(--c-ink); }
+.passage[data-to='vacations'] .passage-act { color: var(--c-vermilion); }
+
 .passage[data-to='horizon'] .s1 { background: var(--c-babyblue); }
 .passage[data-to='horizon'] .s2 { background: color-mix(in oklab, var(--c-sun) 55%, var(--c-canvas)); }
 .passage[data-to='horizon'] .s3 {

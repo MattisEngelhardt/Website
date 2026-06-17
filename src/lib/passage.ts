@@ -33,14 +33,15 @@ export interface WorldModule {
   mount(ctx: WorldContext): Promise<Cleanup> | Cleanup;
 }
 
-type WorldName = 'summit' | 'sea' | 'city' | 'camino' | 'horizon';
+type WorldName = 'summit' | 'sea' | 'city' | 'camino' | 'vacations' | 'horizon';
 
 const WORLDS: Record<WorldName, { act: string; name: string; index: number }> = {
   summit: { act: 'Act 0', name: 'The Summit', index: 0 },
   sea: { act: 'Act I', name: 'The Sea', index: 1 },
   city: { act: 'Act II', name: 'The City', index: 2 },
   camino: { act: 'Act III', name: 'The Way', index: 3 },
-  horizon: { act: 'Act IV', name: 'The Horizon', index: 4 },
+  vacations: { act: 'Act IV', name: 'My Vacations', index: 4 },
+  horizon: { act: 'Act V', name: 'The Horizon', index: 5 },
 };
 
 /** worlds with their own controller; everything else gets the shared one */
@@ -49,6 +50,7 @@ const CONTROLLERS: Partial<Record<WorldName, () => Promise<WorldModule>>> = {
   sea: () => import('../worlds/sea'),
   city: () => import('../worlds/city'),
   camino: () => import('../worlds/camino'),
+  vacations: () => import('../worlds/vacations'),
   horizon: () => import('../worlds/horizon'),
 };
 const defaultController = (): Promise<WorldModule> => import('../worlds/common');
@@ -57,6 +59,7 @@ function worldFromPath(pathname: string): WorldName {
   if (pathname.startsWith('/sea')) return 'sea';
   if (pathname.startsWith('/city')) return 'city';
   if (pathname.startsWith('/camino')) return 'camino';
+  if (pathname.startsWith('/vacations')) return 'vacations';
   if (pathname.startsWith('/horizon')) return 'horizon';
   return 'summit';
 }

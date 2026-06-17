@@ -1,0 +1,623 @@
+{
+  "generated": "2026-06-17T10:06:05.373Z",
+  "items": [
+    {
+      "id": "bayern-01",
+      "type": "photo",
+      "place": "Bayern",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAADQAwCdASoUAA8APu1kq04ppaQiMAgBMB2JagCdMoADTcy/ZNlIQvAA/H20R1UxViAkjgeFOHQT3z93tJAnlhxTDZ3dfkNvH4SMQa8ZApqVCIgA",
+      "poster": "/assets/vacations/bayern-01_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/bayern-01_480.avif 480w, /assets/vacations/bayern-01_960.avif 960w, /assets/vacations/bayern-01_1440.avif 1440w, /assets/vacations/bayern-01_1920.avif 1920w",
+        "webp": "/assets/vacations/bayern-01_480.webp 480w, /assets/vacations/bayern-01_960.webp 960w, /assets/vacations/bayern-01_1440.webp 1440w, /assets/vacations/bayern-01_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "bayern-02",
+      "type": "photo",
+      "place": "Bayern",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAAAQBACdASoUAA8APu1iqU2ppaQiMAgBMB2JZACw7B61GyE/NFS13lZy4AD+l5h71RxRUIZOj0Q3YJJZqcgqrFCFSOasOH42wyLG0jcpqcmlr36a0Izv6T6Pem/RhbmLYeq1wAAA",
+      "poster": "/assets/vacations/bayern-02_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/bayern-02_480.avif 480w, /assets/vacations/bayern-02_960.avif 960w, /assets/vacations/bayern-02_1440.avif 1440w, /assets/vacations/bayern-02_1920.avif 1920w",
+        "webp": "/assets/vacations/bayern-02_480.webp 480w, /assets/vacations/bayern-02_960.webp 960w, /assets/vacations/bayern-02_1440.webp 1440w, /assets/vacations/bayern-02_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "bayern-v01",
+      "type": "video",
+      "place": "Bayern",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAACwAwCdASoUAAsAPu1iqU2ppaOiMAgBMB2JaACdAA4M0dO5N73MaAD2Hu8uu6m4leaAhAttb5C49U4KHN7Wy7DHtbcEsSdtcKo0PzUHAGaIu1rpAPSvAMbMySHb1DKovmPV+G+dWm1ygAAA",
+      "poster": "/assets/vacations/bayern-v01_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/bayern-v01_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/bayern-v01_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "italien-01",
+      "type": "photo",
+      "place": "Italien",
+      "date": "",
+      "w": 3072,
+      "h": 4080,
+      "lqip": "data:image/webp;base64,UklGRuoAAABXRUJQVlA4IN4AAACwBQCdASoUABsAPu1qrFCppaQiqAqpMB2JbACdAywAyuIhAZJ486H0VAxJiSDP7Nem8OYQXyAA+968k6QrHMl4G0Z0BMRGOrpLVLEJ/lPQ9Mb2d/uuL880ycK2RdjYvjWr0Dy5BK51svFpNXUzkdSGy65akQ+OAqJRJSrMbHvVoZcUsuSwJ6eI6JDl5Pm8+5q1WWFTs9HotkqoPmoHBJlb27jaKSS8UVq/ui6TMTPTRJ8AvH0EdlWjEbZizsyR+McUTovMjIdrqL3YX58GTnmyq+Y6Ihk8cI4VMlcAAAA=",
+      "poster": "/assets/vacations/italien-01_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/italien-01_480.avif 480w, /assets/vacations/italien-01_960.avif 960w, /assets/vacations/italien-01_1440.avif 1440w, /assets/vacations/italien-01_1920.avif 1920w",
+        "webp": "/assets/vacations/italien-01_480.webp 480w, /assets/vacations/italien-01_960.webp 960w, /assets/vacations/italien-01_1440.webp 1440w, /assets/vacations/italien-01_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "italien-02",
+      "type": "photo",
+      "place": "Italien",
+      "date": "",
+      "w": 2736,
+      "h": 3648,
+      "lqip": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAACQBQCdASoUABsAPu1kqU2ppaQiMAgBMB2JQBe+JsBYt9xl4Jx+3kMefl6MmkOBjDrJVkfnwAD+7YLQJZEE29M7VgjoUjgf3y8HESLcNh8g6gAlSOIbvefm9vZ5XG2/ltb+k+lqAIZiP6pYyj9U82bWI29vwTg+xiI1RZVY6j0P6zcrBfGIraVetgqLrqubGVVJcxQo3FwMo9iHLsqr0/lUDidEecPArMhtdiSAAAA=",
+      "poster": "/assets/vacations/italien-02_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/italien-02_480.avif 480w, /assets/vacations/italien-02_960.avif 960w, /assets/vacations/italien-02_1440.avif 1440w, /assets/vacations/italien-02_1920.avif 1920w",
+        "webp": "/assets/vacations/italien-02_480.webp 480w, /assets/vacations/italien-02_960.webp 960w, /assets/vacations/italien-02_1440.webp 1440w, /assets/vacations/italien-02_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "italien-03",
+      "type": "photo",
+      "place": "Italien",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAADwAwCdASoUAA8APu1iqU2ppaOiMAgBMB2JYwC+SB4UVd7B8BSD6ZYAAP3rNXKvjrgTMG+kjOA9tXfPT0FtY1nAEQKSGyL/aZtc6mLoSHx7NHfzmd8sHPQkRjMF1Yl4e1PgAmKB/xRR1HLkIquWSq3i+NVt7Tj8eCHbAkLVU4CBs4AA",
+      "poster": "/assets/vacations/italien-03_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/italien-03_480.avif 480w, /assets/vacations/italien-03_960.avif 960w, /assets/vacations/italien-03_1440.avif 1440w, /assets/vacations/italien-03_1920.avif 1920w",
+        "webp": "/assets/vacations/italien-03_480.webp 480w, /assets/vacations/italien-03_960.webp 960w, /assets/vacations/italien-03_1440.webp 1440w, /assets/vacations/italien-03_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "italien-v01",
+      "type": "video",
+      "place": "Italien",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRvYAAABXRUJQVlA4IOoAAACwBgCdASoUACQAPu1oqk4ppiQiKqwBMB2JaACzoYBB4/GpZhZrk34VWJ0lMvfWrlpB9vg2qjDtBVu9bf4vkADhSIsaHi91TdDn1HLl2o6cItgau1o7BY5U3Hzu4OLh8or/3/MOJH14534KHdI7WrS5xNjL8j4Njl8h9DPvIig3lAHsurYCqTSsGIoGMmoNA91SsZmldeOZJwem2HyZfaSWgyi+zbb/fFiZUYeMFKXTeibQuPqUoFviexovhqPAyxjinwU/xMZlJOBIxu63478y3CU7ULXWky1Yz3ZNAqIOk53+HWyGwBTQAAA=",
+      "poster": "/assets/vacations/italien-v01_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/italien-v01_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/italien-v01_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "italien-v02",
+      "type": "video",
+      "place": "Italien",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRoYAAABXRUJQVlA4IHoAAAAwBACdASoUAAsAPu1iqU2ppaOiMAgBMB2JbACdMoACgOY+L6VVvYziGcwA/pNV21qSdU96oA49Pfc/4I/mzPKIYzhmnABo0xI8EDe49ihIEoQ3feqK6JATAyEWspOR9L5lWAgsoXoAJk4eRy0K2GkRkayEMJfUJA+AAA==",
+      "poster": "/assets/vacations/italien-v02_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/italien-v02_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/italien-v02_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "italien-v03",
+      "type": "video",
+      "place": "Italien",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRnoAAABXRUJQVlA4IG4AAADwAwCdASoUAAsAPu1iqU2ppaOiMAgBMB2JYwDE2CL62yU4fiPDwpQAAPyLmvzhVQuFTc7u4gZ+cl51oCpat96PuoptRAJkqDIU0DMYc3d5H3A2Mrd9HUuA+ZCIpM5wmfPBtani+w7Dbdgj2AAAAA==",
+      "poster": "/assets/vacations/italien-v03_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/italien-v03_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/italien-v03_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "italien-v04",
+      "type": "video",
+      "place": "Italien",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAAAQBACdASoUAAsAPu1iqU2ppaOiMAgBMB2JYgC06B0klQMdzoFtO+/QAAD+olm8tGD8DYuLdNRth1A4T+PS4EJAllLa9np3sTHrdRFyYDlm7GXsUm2wi8bciUZVMeTHPOCaQHD/gmjE2KCAAAA=",
+      "poster": "/assets/vacations/italien-v04_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/italien-v04_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/italien-v04_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-01",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 2736,
+      "h": 3648,
+      "lqip": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4IMYAAABwBQCdASoUABsAPu1osFAppaUiqAqpMB2JQBadAddHQrle5Faw+Gcju8ld2b6GEf+fsSAAAP7u5we7/m1oAk0uJk4LuQriWzroBsKDi6ysqVxeuShJTbb2yfNncMgX2nZLcKCWDiN/BtEZZb4MKg2IoRkDT2AD33TqRFHbHdLLfiRRxtWieyx0Rcb7fvCvY0Q+88gzDGSASrFzxl6pcGIJqbK8wH8ximTSqBQ9dGNrzpAuJfkHquvbXEdn14MA0xX8LYkgAAA=",
+      "poster": "/assets/vacations/montenegro-01_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-01_480.avif 480w, /assets/vacations/montenegro-01_960.avif 960w, /assets/vacations/montenegro-01_1440.avif 1440w, /assets/vacations/montenegro-01_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-01_480.webp 480w, /assets/vacations/montenegro-01_960.webp 960w, /assets/vacations/montenegro-01_1440.webp 1440w, /assets/vacations/montenegro-01_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-02",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAABQBACdASoUAA8APu1iqU2ppaOiMAgBMB2JaACdMoMggEmUQZlIJITIJdYAAP3dfU4LJroN3D/hb2wYr56VzEiF9LT4w3QMgRwYbae6MmouT1wOBIxrmGa3N2ivvozjabm3mm7SGx3sFsqPGlFmW+mFYIYAAA==",
+      "poster": "/assets/vacations/montenegro-02_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-02_480.avif 480w, /assets/vacations/montenegro-02_960.avif 960w, /assets/vacations/montenegro-02_1440.avif 1440w, /assets/vacations/montenegro-02_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-02_480.webp 480w, /assets/vacations/montenegro-02_960.webp 960w, /assets/vacations/montenegro-02_1440.webp 1440w, /assets/vacations/montenegro-02_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-03",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4IJIAAACQBACdASoUAA8APu1iqU2ppaOiMAgBMB2JYwC26DfJtgMojSNjJ/CHT6NzicAA/nSI2V+p8Hw40LR1mJMNzXPQK5wYyOxP/9RB0uytxDPBNzu9wgP62trBjVcc74N2FOYgjQ8qTneWYhr6t9pH0DztNY3kCI1amzvckfhb7rvBNTw0zfJzh13Dv9nq60zFf3LAAA==",
+      "poster": "/assets/vacations/montenegro-03_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-03_480.avif 480w, /assets/vacations/montenegro-03_960.avif 960w, /assets/vacations/montenegro-03_1440.avif 1440w, /assets/vacations/montenegro-03_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-03_480.webp 480w, /assets/vacations/montenegro-03_960.webp 960w, /assets/vacations/montenegro-03_1440.webp 1440w, /assets/vacations/montenegro-03_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-04",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRoYAAABXRUJQVlA4IHoAAAAwBACdASoUAA8APu1iqU2ppaOiMAgBMB2JYgCdABeRj2079n7MvCA/FAAA/jvV/ZYH/2TvdYPgCx9fV2tItYOjw4f9mwYZWHBrQ+WsYHQOYpNty9Y1Obm6z+sFvZzK+DqLp/sZElkEoAXcCJ/aSHyOclx2kVcylrcAAA==",
+      "poster": "/assets/vacations/montenegro-04_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-04_480.avif 480w, /assets/vacations/montenegro-04_960.avif 960w, /assets/vacations/montenegro-04_1440.avif 1440w, /assets/vacations/montenegro-04_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-04_480.webp 480w, /assets/vacations/montenegro-04_960.webp 960w, /assets/vacations/montenegro-04_1440.webp 1440w, /assets/vacations/montenegro-04_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-05",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRoYAAABXRUJQVlA4IHoAAAAwBACdASoUAA8APu1iqU2ppaOiMAgBMB2JQBdkAfhVsy6cC46Yu++WNYAA/u7jmZcmPe0mOod5Qg/hXZDcC86w/jp5Y4829TfFjmB55xgo+iE9VULNauCts2VyQkr+NewLU1U2qFuX2ywFOv4QgoCRRjmDf5Bj584AAA==",
+      "poster": "/assets/vacations/montenegro-05_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-05_480.avif 480w, /assets/vacations/montenegro-05_960.avif 960w, /assets/vacations/montenegro-05_1440.avif 1440w, /assets/vacations/montenegro-05_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-05_480.webp 480w, /assets/vacations/montenegro-05_960.webp 960w, /assets/vacations/montenegro-05_1440.webp 1440w, /assets/vacations/montenegro-05_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-06",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACwAwCdASoUAA8APu1iqU2ppaOiMAgBMB2JZQCdACKeSFbuyy699AD+acfYQbmtEFz/zvHye7F8qNm/nKiX7A0Gx+J9fXgt0mur7A9n3JYZfmoVDGpMDxGhKte9ROS2DOCRnalQAAA=",
+      "poster": "/assets/vacations/montenegro-06_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-06_480.avif 480w, /assets/vacations/montenegro-06_960.avif 960w, /assets/vacations/montenegro-06_1440.avif 1440w, /assets/vacations/montenegro-06_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-06_480.webp 480w, /assets/vacations/montenegro-06_960.webp 960w, /assets/vacations/montenegro-06_1440.webp 1440w, /assets/vacations/montenegro-06_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-07",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAABwAwCdASoUAA8APu1iqU2ppaOiMAgBMB2JQBadAqE7AQH+d1AAzVZlJXl3IS7HsbfjoNt5a3iFA2yAtGgaRJK2nxxCjm0qXz24PnmBkDzIpY9+0ck4ItaRGO284rUokIWNGoAA",
+      "poster": "/assets/vacations/montenegro-07_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-07_480.avif 480w, /assets/vacations/montenegro-07_960.avif 960w, /assets/vacations/montenegro-07_1440.avif 1440w, /assets/vacations/montenegro-07_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-07_480.webp 480w, /assets/vacations/montenegro-07_960.webp 960w, /assets/vacations/montenegro-07_1440.webp 1440w, /assets/vacations/montenegro-07_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-08",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRpoAAABXRUJQVlA4II4AAAAwBACdASoUAA8APu1iqU2ppaOiMAgBMB2JYgCdEf/gJdAcCxcVDqt1nQAA/pPBjICltLjUTC5GnPC1yOGmyKo5Lq2nD5p7ijvQQF5d1dkoyONP8jHbcogNukJ7pSNmfBAXpaADNNnENeN6T5B+r7Z0IpjbffkXgMYx3PAYx/JqwHZBJOgG3aveV8uygAAA",
+      "poster": "/assets/vacations/montenegro-08_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-08_480.avif 480w, /assets/vacations/montenegro-08_960.avif 960w, /assets/vacations/montenegro-08_1440.avif 1440w, /assets/vacations/montenegro-08_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-08_480.webp 480w, /assets/vacations/montenegro-08_960.webp 960w, /assets/vacations/montenegro-08_1440.webp 1440w, /assets/vacations/montenegro-08_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-09",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAADwAwCdASoUAA8APu1iqU2ppaOiMAgBMB2JZACdEf/gQGZK+Pex321kAP3ikv2kdrQXcT3470VJJV3AWC1UawktkuFac7S6yHBHHObVc4Orcw4JNicB/SLJMA9TYaBS+J/u6YuwiobIi/B28jzeVlYNHDnwB12ClFYkgAAA",
+      "poster": "/assets/vacations/montenegro-09_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-09_480.avif 480w, /assets/vacations/montenegro-09_960.avif 960w, /assets/vacations/montenegro-09_1440.avif 1440w, /assets/vacations/montenegro-09_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-09_480.webp 480w, /assets/vacations/montenegro-09_960.webp 960w, /assets/vacations/montenegro-09_1440.webp 1440w, /assets/vacations/montenegro-09_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-10",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 2736,
+      "h": 3648,
+      "lqip": "data:image/webp;base64,UklGRvwAAABXRUJQVlA4IPAAAABQBgCdASoUABsAPu1mqk2ppaQiMAgBMB2JZACdL3cT/Z+AW0Ctdm0c/7+XZPSVVeH7louEHUEct9anAADLMnt9Iu3fzYgSExytrUjyQClzcesNqGOARZH4CkGcX3va4+84puasoeJiDC150NFdX6JWiKtrFwzUJcmN/D1nwpZDxAz+Z90hUKrjWNyVLSWEYUq+11YyjDBJwsUlXytF79hEihFFtgXnE3SSkV/uJa/X9ss+1XwUoMdu5nxK/rkFnpHEkiNLNVvN9k+s/Mw5ATyQkZ5E4lgLnGd9wNET9vezxn7MwT3XYXledbT4I96ngAA=",
+      "poster": "/assets/vacations/montenegro-10_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-10_480.avif 480w, /assets/vacations/montenegro-10_960.avif 960w, /assets/vacations/montenegro-10_1440.avif 1440w, /assets/vacations/montenegro-10_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-10_480.webp 480w, /assets/vacations/montenegro-10_960.webp 960w, /assets/vacations/montenegro-10_1440.webp 1440w, /assets/vacations/montenegro-10_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-11",
+      "type": "photo",
+      "place": "Montenegro",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAABQBACdASoUAA8APu1iqU2ppaOiMAgBMB2JZACdIExDL/yS3+hFY4HZCa5kAP6hJYqQP6dD26o+uaisl5vwDmjqHnouU8mnr8QwPeexIuepsjFfuU7UHdST42U5Tn8VqngXkT19biwIESgAaf/5AAAA",
+      "poster": "/assets/vacations/montenegro-11_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/montenegro-11_480.avif 480w, /assets/vacations/montenegro-11_960.avif 960w, /assets/vacations/montenegro-11_1440.avif 1440w, /assets/vacations/montenegro-11_1920.avif 1920w",
+        "webp": "/assets/vacations/montenegro-11_480.webp 480w, /assets/vacations/montenegro-11_960.webp 960w, /assets/vacations/montenegro-11_1440.webp 1440w, /assets/vacations/montenegro-11_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "montenegro-v01",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAADwAwCdASoUAAsAPu1iqU2ppaOiMAgBMB2JZQDE2Yu44/fm8YyhcW6YAP65SS2p/kZpgB8EIQrJe13d9vP5MDSp82KCzxrJPq6MdgAW+W+99nr4VUo5r1rXPtr53iti8Cjb2wuyyBuf7Yb2UUJfjNLbEO5Fv04A",
+      "poster": "/assets/vacations/montenegro-v01_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v01_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v01_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v02",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAAAwBACdASoUAAsAPu1iqU2ppaQiMAgBMB2JYwBTALwAXWG/VfDa9S0wmeAA/uN1d26nR4demAA63MrAvRkEitZd95STq4pkW7VvKeTgIhlRdLMEeh/WJx26vCN8g+rx8r86A0qlZaSR/tzzotKRgJed+QAAAA==",
+      "poster": "/assets/vacations/montenegro-v02_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v02_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v02_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v03",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAADQAwCdASoUAAsAPu1iqU2ppaQiMAgBMB2JZQCdACBzesNJ8hio8gAA/rpO3yYXmBUdrbEESC1FkDxn7TRehl5WaxV8TcJ0Q31+pgasgS0PLXRK7jteW9LX8lj3AMPP3H//2S17nQ9jh8AA",
+      "poster": "/assets/vacations/montenegro-v03_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v03_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v03_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v04",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAAAwBACdASoUAAsAPu1iqU2ppaOiMAgBMB2JZQCsAB0k40l8g7G6AP4XegAA8kHDfT7MMfD92fODM2zLxheVhKUfxRAIZHmtFChDOnnkxp6hwo8Kwk+u/FGuETOw0hFE6WS+GDg+hgWDr7SwsC0BoAAA",
+      "poster": "/assets/vacations/montenegro-v04_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v04_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v04_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v05",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAABwAwCdASoUAAsAPu1iqU2ppaQiMAgBMB2JQAALudKCNO1woAAA/n6lF8bR7m6kVS/di6lqkcaEEpiI1h+XFmyHm54KNwPxYomH3jWYm64jSuA/tuVKZbzY0fhWTKtAGDgAAA==",
+      "poster": "/assets/vacations/montenegro-v05_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v05_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v05_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v06",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAAAQBACdASoUAAsAPu1iqU2ppaQiMAgBMB2JYgCdACPuLYCV8+T5JC01MADyPmgCfCKQ+V8Xx0CvaRM6OMo2qVZqZqi5V6PBAHDZSogk/4gCks9SbemdfUkN2voihXsSFrd/086xi/4HywiFmF4sXHUJcAA=",
+      "poster": "/assets/vacations/montenegro-v06_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v06_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v06_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v07",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAACQAwCdASoUAAsAPu1kqU2ppaOiMAgBMB2JZwAAV78Qwn/0IXAAAP7w3aqQUw0QfCDw9tndnzYKLe/OxuVe/gkOgXxLxX4+LAZE6lcFalwuuRMNliwW6LjhgFMvZYAA",
+      "poster": "/assets/vacations/montenegro-v07_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v07_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v07_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v08",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRvYAAABXRUJQVlA4IOoAAABwBgCdASoUACQAPu1srVCppiQiqqgBMB2JYwC+TbLxgAUmSX/dHGafCPpFEg1CRF9lBGMNmb4U2ehyqAAA/l7X0/zh+tNcosa2P1vXwEUdx0cK1ldnE92bB7m4RD1GTcnMxngml17Fbam3R4QP4MCijXvxXBjcd6o+n0xmkyc+P9ddebnOyAHO87o11wOLoj95ZuUuM3ShJ7+zuH0ziVXjqeVAQpuQ4yn21gSkJOKxUm6sDBHSWs8H62Cms58Crz3ULE63GQjo2AMe64RRs6uf/qWSYeIDRJuV2U+RjDs3yN9GIPfc1F2AAAA=",
+      "poster": "/assets/vacations/montenegro-v08_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v08_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v08_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v09",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAADwAwCdASoUAAsAPu1iqU2ppaOiMAgBMB2JbACdMoABcLKWH6nZlugAAPuHcsGfAdjBz2UIMhAOhld/vnx99UbUm3RZtqIt1Pjwh6UzTjyDDCi+LVPAHXJAznUhet9CsrxU3vxxNw+s9FskLgIdZJLER+JFBGSvAAA=",
+      "poster": "/assets/vacations/montenegro-v09_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v09_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v09_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "montenegro-v10",
+      "type": "video",
+      "place": "Montenegro",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAABQBACdASoUAAsAPu1iqk4ppaQiMAgBMB2JbACdMoR3ACWO79c+8OpS7JdAAP6EFgRWOn72N2rRwrDuBojzKgdqzES+FDwc7fNDp/mZbqNNOs2hzHaerrU1fBhllFGQgqc+Ytb0a64VmwKC2AA=",
+      "poster": "/assets/vacations/montenegro-v10_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/montenegro-v10_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/montenegro-v10_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    },
+    {
+      "id": "oesterreich-01",
+      "type": "photo",
+      "place": "Österreich",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAADQAwCdASoUAA8APu1iqU2ppaOiMAgBMB2JYwC7ABjO5LcsPxCbggAA/q+W6jbwuuPVy9rzUACkTvQWmp3aT73fe5MZW9BGx68RID0eEMICLHRd3c2gyB/SOnnikftRzdI9OgafO0JHDrDWFCj0pP70D0AAAA==",
+      "poster": "/assets/vacations/oesterreich-01_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/oesterreich-01_480.avif 480w, /assets/vacations/oesterreich-01_960.avif 960w, /assets/vacations/oesterreich-01_1440.avif 1440w, /assets/vacations/oesterreich-01_1920.avif 1920w",
+        "webp": "/assets/vacations/oesterreich-01_480.webp 480w, /assets/vacations/oesterreich-01_960.webp 960w, /assets/vacations/oesterreich-01_1440.webp 1440w, /assets/vacations/oesterreich-01_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "oesterreich-02",
+      "type": "photo",
+      "place": "Österreich",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAADQBACdASoUAA8APu1iqU2ppaOiMAgBMB2JagCdMoMYOGrb/4Dx/Mm6L7T2BeYlgAD+zW8wa+L6aop99d7qmIWb+timolC/8Oh5OTV0Fpzp6hF0v6qTsj4hZ3sLe8Gy/zgkbX/2VJX+WfusPRWRI/RtP8B3gArKxKl5LwJEjpJwcMSnsAA=",
+      "poster": "/assets/vacations/oesterreich-02_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/oesterreich-02_480.avif 480w, /assets/vacations/oesterreich-02_960.avif 960w, /assets/vacations/oesterreich-02_1440.avif 1440w, /assets/vacations/oesterreich-02_1920.avif 1920w",
+        "webp": "/assets/vacations/oesterreich-02_480.webp 480w, /assets/vacations/oesterreich-02_960.webp 960w, /assets/vacations/oesterreich-02_1440.webp 1440w, /assets/vacations/oesterreich-02_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "oesterreich-03",
+      "type": "photo",
+      "place": "Österreich",
+      "date": "",
+      "w": 4080,
+      "h": 3072,
+      "lqip": "data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAABQBACdASoUAA8APu1iqU2ppaOiMAgBMB2JaACdMoACMA8TNadIDFQJM9SgAMqj8Ml3abtM/cnvYbDQq3I8l1rRRr8sLhdWxH8CNHmrhWZOtbWiKRpRgdETz189FaTGgblHrACAcu49vQFXFmE3Lol5vZ8QpIjKkj/3kAAA",
+      "poster": "/assets/vacations/oesterreich-03_960.webp",
+      "srcset": {
+        "avif": "/assets/vacations/oesterreich-03_480.avif 480w, /assets/vacations/oesterreich-03_960.avif 960w, /assets/vacations/oesterreich-03_1440.avif 1440w, /assets/vacations/oesterreich-03_1920.avif 1920w",
+        "webp": "/assets/vacations/oesterreich-03_480.webp 480w, /assets/vacations/oesterreich-03_960.webp 960w, /assets/vacations/oesterreich-03_1440.webp 1440w, /assets/vacations/oesterreich-03_1920.webp 1920w"
+      }
+    },
+    {
+      "id": "oesterreich-v01",
+      "type": "video",
+      "place": "Österreich",
+      "date": "",
+      "w": 3840,
+      "h": 2160,
+      "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAABwAwCdASoUAAsAPu1iqU2ppaOiMAgBMB2JYwCw7CBk2GCGUYAA3OSv1P8NJOgUjEJ/5BMdSxABw+0RyeFuUU+ZIQuJptLuArME3NWq5cBo4m64AAA=",
+      "poster": "/assets/vacations/oesterreich-v01_poster.webp",
+      "preview": [
+        {
+          "src": "/assets/vacations/oesterreich-v01_preview.mp4",
+          "type": "video/mp4"
+        }
+      ],
+      "full": [
+        {
+          "src": "/assets/vacations/oesterreich-v01_1080.mp4",
+          "type": "video/mp4"
+        }
+      ]
+    }
+  ]
+}
