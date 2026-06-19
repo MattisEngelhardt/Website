@@ -63,24 +63,15 @@ try {
     return track ? track.offsetHeight - window.innerHeight : 0;
   });
 
-  // mid-voyage: caption 2 window (0.42–0.62), ship mid-crossing
+  // mid-voyage: ship mid-crossing (the kitschy .c1/.c2/.c3 voyage captions were
+  // purged in Workstream E — the screenshots are the look review for the ship)
   await page.evaluate((y) => window.scrollTo(0, y), Math.round(trackHeight * 0.5));
   await page.waitForTimeout(1700);
-  const midCaption = await page.evaluate(() =>
-    parseFloat(getComputedStyle(document.querySelector('.c2')).opacity),
-  );
-  check('caption 2 visible mid-voyage', midCaption > 0.5, `opacity ${midCaption}`);
   await page.screenshot({ path: `${outDir}/sea-50.png` });
 
-  // late voyage: dusk palette, caption 3
+  // late voyage: dusk palette
   await page.evaluate((y) => window.scrollTo(0, y), Math.round(trackHeight * 0.75));
   await page.waitForTimeout(1700);
-  const lateCaption = await page.evaluate(() => ({
-    c3: parseFloat(getComputedStyle(document.querySelector('.c3')).opacity),
-    c2: parseFloat(getComputedStyle(document.querySelector('.c2')).opacity),
-  }));
-  check('caption 3 visible late', lateCaption.c3 > 0.5, JSON.stringify(lateCaption));
-  check('caption 2 gone again', lateCaption.c2 < 0.3);
   await page.screenshot({ path: `${outDir}/sea-75.png` });
 
   // the gold-out
