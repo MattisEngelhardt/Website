@@ -24,6 +24,9 @@ export async function mount(ctx: WorldContext): Promise<Cleanup> {
     if (handle) {
       scene = handle;
       setVoyage = (t) => handle.setVoyage(t);
+      // dev/verify hook: drive the voyage directly (Lenis-driven scroll is hard
+      // to scrub deterministically from Playwright). Harmless global in prod.
+      (window as { __sea?: unknown }).__sea = handle;
     }
   }
 

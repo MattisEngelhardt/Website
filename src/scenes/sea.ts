@@ -15,9 +15,11 @@
  * readback). The Kuwahara painterly pass finishes the whole frame as paint.
  *
  * Scroll drives `setVoyage(t)`: the palette deepens from golden hour into
- * dusk, the brig sails out of the far light toward the viewer, the camera
- * leans down to the water, and the sun blooms into the gold-out that
- * resolves onto the next page of the book.
+ * dusk, the brig CROSSES the frame laterally in front of the low sun — a tall
+ * backlit silhouette riding the swell on multi-point buoyancy (it heaves,
+ * pitches and rolls), trailing a luminous wake with a hint of bow spray — the
+ * camera sinks low to the water to frame it, and the sun blooms into the
+ * gold-out that resolves onto the next page of the book.
  */
 import * as THREE from 'three/webgpu';
 import {
@@ -87,6 +89,45 @@ const TRAIL_X = 90;
 const TRAIL_Z0 = -220;
 const TRAIL_Z1 = 20;
 const TRAIL_RES = 256;
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * THE BRIG — money-shot tuning (Workstream D, "Das Boot").
+ *
+ * The brig is real Blender geometry whose bow points along +X in the loaded
+ * GLB (Blender +X bow → glTF +X; see scripts/blender/sea_set.py header). We
+ * yaw it about Y so it crosses LATERALLY (left → right) in front of the low
+ * sun (uSunDir ≈ (-0.34, sunY, -1)), big and near enough to read as the hero
+ * silhouette — not a distant speck. It rides the swell via multi-point
+ * buoyancy sampled from the ocean's CPU height/slope mirror.
+ * ──────────────────────────────────────────────────────────────────────── */
+const SHIP = {
+  scale: 1.5,         // hero size; the rig laces a good third of the frame at the pass
+  draft: -0.9,        // metres the modelled waterline (z=0) sinks below the sea
+                      //   (hull sits IN the water, the waterline cuts the hull)
+  // the lateral crossing in world units (the camera looks toward -Z):
+  pathZ: -60,         // distance from camera of the crossing — near & big
+  pathXFrom: 56,      // start X (screen right of frame, off-sun side)
+  pathXTo: -34,       // end X (sweeps left, across and past the sun)
+  pathBow: 1,         // +1 = bow leads toward -X (L); set with the path sign
+  speed: 0.14,        // base lateral speed (world-units / sec) of the drift
+  // multi-point buoyancy footprint (local ship metres BEFORE scale): the
+  // four corners + the bow & stern of the waterline the hull floats on.
+  halfLen: 6.2,       // bow/stern sample reach along keel (+X bow)
+  halfBeam: 0.95,     // port/stbd sample reach across the hull
+  heaveDamp: 0.10,    // 0..1 — how fast vertical follows the swell (weighty)
+  tiltDamp: 0.08,     // 0..1 — how fast pitch/roll follow (heavier = slower)
+  pitchGain: 0.85,    // exaggeration of bow/stern heave → pitch angle
+  rollGain: 1.05,     // exaggeration of port/stbd heave → roll angle
+  trimZ: 0.0,         // static bow-up trim (radians) — galleon rides bow-high
+} as const;
+const SKIFF = {
+  scale: 0.95,
+  draft: -0.12,
+  heaveDamp: 0.14,
+  tiltDamp: 0.12,
+  pitchGain: 1.1,
+  rollGain: 1.2,
+} as const;
 
 export interface SeaHandle {
   setVoyage(t: number): void;
@@ -290,6 +331,8 @@ export async function mountSea(
   /* ── the brig + skiff (real Blender GLBs, floated on the surface) ── */
   let brig: THREE.Object3D | null = null;
   let skiff: THREE.Object3D | null = null;
+  const brigFloat = makeFloatState();
+  const skiffFloat = makeFloatState();
 
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
@@ -307,8 +350,11 @@ export async function mountSea(
           const a: any = attribute('color');
           const mat = new THREE.MeshBasicNodeMaterial();
           const dist = length(positionWorld.sub(cameraPosition));
-          const haze = smoothstep(40.0, 220.0, dist).mul(0.55);
-          mat.colorNode = vec4(mix(a.rgb, uGold, haze), 1);
+          const haze = smoothstep(40.0, 220.0, dist).mul(0.4);
+          // a STRONG backlit silhouette: darken the baked ink hard so the ship
+          // reads as a near-black Aivazovsky cut-out against the bright sun
+          // (the relative warm up-sun rim survives), then a touch of warm haze.
+          mat.colorNode = vec4(mix(a.rgb.mul(0.32), uGold, haze), 1);
           mesh.material = mat;
           mesh.renderOrder = 5;
         });
@@ -383,25 +429,53 @@ export async function mountSea(
   }
   window.addEventListener('pointermove', onPointerMove, { passive: true });
 
+  /* the ship's WAKE + bow SPRAY live in the SAME trail canvas (cheap): the
+     water material lifts this channel as warm lingering light, so a foam
+     ribbon stamped behind the hull reads as a luminous, lit wake. The loop
+     writes the stern/bow world positions + a spray strength here each frame. */
+  const wake = {
+    sternX: 0, sternZ: 0, hasWake: false,
+    bowX: 0, bowZ: 0, spray: 0,
+  };
+  function worldToTrail(x: number, z: number): [number, number] | null {
+    const u = (x + TRAIL_X) / (TRAIL_X * 2);
+    const v = (z - TRAIL_Z0) / (TRAIL_Z1 - TRAIL_Z0);
+    if (u <= 0 || u >= 1 || v <= 0 || v >= 1) return null;
+    return [u * TRAIL_RES, v * TRAIL_RES];
+  }
+  function stamp(cx: number, cy: number, r: number, a: number) {
+    const g = trailCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, `rgba(255,255,255,${a})`);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    trailCtx.globalCompositeOperation = 'lighten';
+    trailCtx.fillStyle = g;
+    trailCtx.beginPath();
+    trailCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    trailCtx.fill();
+  }
   function paintTrail() {
+    // a slow fade leaves a TAIL behind the moving hull (the wake streams aft)
     trailCtx.globalCompositeOperation = 'source-over';
-    trailCtx.fillStyle = 'rgba(0,0,0,0.04)';
+    trailCtx.fillStyle = 'rgba(0,0,0,0.035)';
     trailCtx.fillRect(0, 0, TRAIL_RES, TRAIL_RES);
+
+    // the cursor's brush of light
     if (pointerOnWater) {
-      const u = (pointerOnWater.x + TRAIL_X) / (TRAIL_X * 2);
-      const v = (pointerOnWater.z - TRAIL_Z0) / (TRAIL_Z1 - TRAIL_Z0);
-      if (u > 0 && u < 1 && v > 0 && v < 1) {
-        const cx = u * TRAIL_RES;
-        const cy = v * TRAIL_RES;
-        const r = 6 + (1 - v) * 16;
-        const g = trailCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0, 'rgba(255,255,255,0.5)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        trailCtx.globalCompositeOperation = 'lighten';
-        trailCtx.fillStyle = g;
-        trailCtx.beginPath();
-        trailCtx.arc(cx, cy, r, 0, Math.PI * 2);
-        trailCtx.fill();
+      const p = worldToTrail(pointerOnWater.x, pointerOnWater.z);
+      if (p) stamp(p[0], p[1], 6 + (1 - p[1] / TRAIL_RES) * 16, 0.5);
+    }
+
+    // the ship's wake: a bright dab at the stern (fades to a streaming ribbon)
+    if (wake.hasWake) {
+      const s = worldToTrail(wake.sternX, wake.sternZ);
+      if (s) {
+        const depth = 1 - s[1] / TRAIL_RES; // nearer = bigger
+        stamp(s[0], s[1], 9 + depth * 22, 0.42);
+      }
+      // bow spray: a sharper, brighter burst where the bow meets a crest
+      if (wake.spray > 0.001) {
+        const b = worldToTrail(wake.bowX, wake.bowZ);
+        if (b) stamp(b[0], b[1], 6 + wake.spray * 16, Math.min(0.7, 0.3 + wake.spray));
       }
     }
     trailTex.needsUpdate = true;
@@ -421,19 +495,83 @@ export async function mountSea(
     out.z = a.z + b.z;
   }
 
+  /* MULTI-POINT BUOYANCY — sample the swell at the bow, stern, port and
+     starboard waterline points of the hull, then fit the object's vertical
+     position + pitch + roll to those heights so it heaves, pitches and rolls
+     with the sea. Damped so it reads weighty, not jittery. Each floated
+     object keeps its own smoothed state. The footprint is yawed by headingY
+     so the bow/stern axis always lies along the ship's heading. */
+  interface FloatState {
+    h: number; pitch: number; roll: number; init: boolean;
+  }
+  function makeFloatState(): FloatState {
+    return { h: 0, pitch: 0, roll: 0, init: false };
+  }
+  // orientation scratch (avoid per-frame allocation)
+  const _qYaw = new THREE.Quaternion();
+  const _qPitch = new THREE.Quaternion();
+  const _qRoll = new THREE.Quaternion();
+  const _q = new THREE.Quaternion();
+  const _axisY = new THREE.Vector3(0, 1, 0);
+  const _axisPitch = new THREE.Vector3();
+  const _axisRoll = new THREE.Vector3();
   function floatObject(
-    obj: THREE.Object3D, x: number, z: number, t: number,
+    obj: THREE.Object3D, st: FloatState, x: number, z: number, t: number,
     draft: number, headingY: number,
+    halfLen: number, halfBeam: number, scale: number,
+    heaveDamp: number, tiltDamp: number,
+    pitchGain: number, rollGain: number, trimZ: number,
   ) {
-    const h = seaHeight(x, z, t);
-    obj.position.set(x, h + draft, z);
-    seaSlope(x, z, t, ht);
-    // pitch about x from along-track slope, roll about z from cross slope
-    obj.rotation.set(
-      Math.atan(ht.z) * 0.5,        // pitch with z-slope
-      headingY,
-      Math.atan(ht.x) * -0.5 + Math.sin(t * 0.3) * 0.01, // roll
-    );
+    const ch = Math.cos(headingY);
+    const sh = Math.sin(headingY);
+    // a local offset (along-keel l, across-beam b) rotated into world XZ by
+    // the heading. With rotation.y = headingY, local +X maps to
+    // (cos h, 0, -sin h) in world; local +Z (starboard side) maps to
+    // (sin h, 0, cos h).
+    const sample = (l: number, b: number) => {
+      const wx = x + l * ch + b * sh;
+      const wz = z - l * sh + b * ch;
+      return seaHeight(wx, wz, t);
+    };
+    const L = halfLen * scale;
+    const B = halfBeam * scale;
+    const hBow = sample(L, 0);
+    const hStern = sample(-L, 0);
+    const hPort = sample(0, -B);
+    const hStbd = sample(0, B);
+    const hMid = seaHeight(x, z, t);
+
+    // target heave = mean of the footprint (centre-of-buoyancy height)
+    const hTarget = (hBow + hStern + hPort + hStbd + hMid * 2) / 6;
+    // pitch (about the heading-local X / world via headingY): bow rising
+    // relative to stern → bow-up. atan over the keel length.
+    const pitchTarget = Math.atan2(hBow - hStern, 2 * L) * pitchGain + trimZ;
+    // roll: starboard rising relative to port → roll. atan over the beam.
+    const rollTarget = Math.atan2(hStbd - hPort, 2 * B) * rollGain;
+
+    if (!st.init) {
+      st.h = hTarget; st.pitch = pitchTarget; st.roll = rollTarget;
+      st.init = true;
+    } else {
+      st.h += (hTarget - st.h) * heaveDamp;
+      st.pitch += (pitchTarget - st.pitch) * tiltDamp;
+      st.roll += (rollTarget - st.roll) * tiltDamp;
+    }
+
+    obj.position.set(x, st.h + draft, z);
+    // Build orientation with quaternions so the axes never cross-couple:
+    //   1) yaw about world +Y by headingY (turns the bow onto the heading),
+    //   2) pitch about the ship's local lateral axis (beam, world after yaw),
+    //   3) roll  about the ship's local longitudinal axis (the keel/bow line).
+    // bow (local +X) after yaw → (cos h, 0, -sin h); beam (local +Z, stbd)
+    // after yaw → (sin h, 0, cos h).
+    _qYaw.setFromAxisAngle(_axisY, headingY);
+    _axisPitch.set(sh, 0, ch);                 // lateral/beam axis in world
+    _qPitch.setFromAxisAngle(_axisPitch, st.pitch);
+    _axisRoll.set(ch, 0, -sh);                 // longitudinal/keel axis in world
+    _qRoll.setFromAxisAngle(_axisRoll, st.roll);
+    _q.copy(_qRoll).multiply(_qPitch).multiply(_qYaw);
+    obj.quaternion.copy(_q);
   }
 
   /* ── loop ── */
@@ -450,29 +588,71 @@ export async function mountSea(
         computing = false;
       });
     }
-    paintTrail();
-
-    // the voyage: the brig sails out of the far light toward us
     const sail = smoothstepJs(0, 1, voyage);
+
+    /* ── THE MONEY-SHOT: the brig crosses laterally across the frame in front
+       of the low sun (sun azimuth ≈ -X, into the screen). The path X sweeps
+       continuously with time so it is always sailing — screen-right → -X
+       (toward and across the sun); the voyage `sail` pulls the crossing nearer
+       and a touch bigger as dusk falls. Heading is tied to the path so the bow
+       leads. Flip SHIP.pathBow / swap pathXFrom↔pathXTo to reverse it. ── */
+    wake.hasWake = false;
     if (brig) {
-      const bx = lerp(26, -10, sail);
-      const bz = lerp(-150, -34, sail);
-      floatObject(brig, bx, bz, t, 0.2, Math.PI * 0.5 - sail * 0.3);
-      const s = lerp(1.0, 1.25, sail);
-      brig.scale.setScalar(s);
+      // one hero crossing mapped to the whole voyage scroll: the brig sweeps the
+      // full span from pathXFrom (R) to pathXTo (L) as t goes 0→1, passing the
+      // sun near mid-scroll. (The old `(t*speed*10)%span` advanced only ~1.4 of a
+      // 150-unit span over the ENTIRE voyage, so the ship stuck far off-frame and
+      // read as a distant speck — it never actually crossed.)
+      const span = SHIP.pathXFrom - SHIP.pathXTo;            // > 0
+      const cross = Math.min(Math.max((t - 0.1) / 0.8, 0), 1); // ease the crossing into the scroll window
+      const bx = SHIP.pathXFrom - cross * span;             // sweeps R→L across the sun
+      const bz = lerp(SHIP.pathZ + 10, SHIP.pathZ, sail);   // nearer at dusk
+      // heading: the hull's bow is local +X; floatObject maps local along-keel
+      // l to world delta (l·cos h, -l·sin h). To make the bow point toward
+      // world -X (the travel direction of the R→L sweep) we need cos h = -1,
+      // sin h = 0 → yaw = PI. The keel then lies along X → a pure lateral
+      // crossing across the sun.
+      const headY = Math.PI;
+      floatObject(
+        brig, brigFloat, bx, bz, t, SHIP.draft, headY,
+        SHIP.halfLen, SHIP.halfBeam, SHIP.scale,
+        SHIP.heaveDamp, SHIP.tiltDamp, SHIP.pitchGain, SHIP.rollGain, SHIP.trimZ,
+      );
+      brig.scale.setScalar(SHIP.scale * lerp(1.0, 1.08, sail));
+
+      // feed the wake: bow leads at +keel, stern trails at -keel (same mapping
+      // as floatObject: along-keel l → world (l·ch, -l·sh)).
+      const ch = Math.cos(headY), sh = Math.sin(headY);
+      const bowL = SHIP.halfLen * SHIP.scale;
+      wake.bowX = bx + bowL * ch;    wake.bowZ = bz - bowL * sh;
+      wake.sternX = bx - bowL * ch;  wake.sternZ = bz + bowL * sh;
+      seaSlope(wake.bowX, wake.bowZ, t, ht);
+      // spray ∝ how much the bow buries: crest height + along-track steepness
+      const bowH = seaHeight(wake.bowX, wake.bowZ, t);
+      const steep = Math.abs(ht.x * ch - ht.z * sh);
+      wake.spray = Math.max(0, smoothstepJs(0.6, 2.2, bowH) * 0.7 + steep * 0.25);
+      wake.hasWake = true;
     }
     if (skiff) {
-      // the skiff rides the lower-right foreground throughout
-      floatObject(skiff, 18 - sail * 4, -26 - sail * 2, t, 0.05, -0.5);
-      skiff.scale.setScalar(0.9);
+      // the skiff rides the lower-right foreground throughout, bobbing harder
+      floatObject(
+        skiff, skiffFloat, 20 - sail * 3, -30 - sail * 2, t, SKIFF.draft, -0.5,
+        1.6, 0.5, SKIFF.scale,
+        SKIFF.heaveDamp, SKIFF.tiltDamp, SKIFF.pitchGain, SKIFF.rollGain, 0,
+      );
+      skiff.scale.setScalar(SKIFF.scale);
     }
 
-    // camera leans with the pointer, sinks toward the water as dusk falls
-    const camY = 3.6 - sail * 0.9;
-    const camX = -sail * 2.2;
+    paintTrail();
+
+    // camera leans with the pointer; at the climax it sinks LOW to the water
+    // and frames the lateral crossing in front of the sun.
+    const camY = 3.6 - sail * 1.6;            // lower at dusk → backlit profile
+    const camX = -sail * 1.0;
     camera.position.x += (camX + pointer.x * 0.8 - camera.position.x) * 0.04;
     camera.position.y += (camY + pointer.y * -0.3 - camera.position.y) * 0.04;
-    camera.lookAt(camera.position.x * 0.5, 1.6, -160);
+    // look toward the crossing plane (and the sun beyond it)
+    camera.lookAt(camera.position.x * 0.5, 1.2 - sail * 0.5, SHIP.pathZ - 40);
     sky.position.copy(camera.position);
 
     painting.render();

@@ -124,8 +124,7 @@ try {
     runway:
       (document.getElementById('voyage-track')?.offsetHeight ?? 0) >
       window.innerHeight * 1.5,
-    captionHidden:
-      getComputedStyle(document.querySelector('.c1')).display === 'none',
+    captionHidden: !document.querySelector('.c1'), // flavor captions removed entirely
     h2: document.querySelector('#log h2')?.textContent ?? '',
   }));
   check('catalogue gate held', cat.mode === 'catalog' && !cat.sceneLive && !cat.runway);
